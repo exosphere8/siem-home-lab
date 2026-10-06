@@ -1,0 +1,14 @@
+# /etc/netplan/50-lab.yaml on ubuntu-endpoint
+# Apply with: sudo chmod 600 /etc/netplan/50-lab.yaml && sudo netplan try
+network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: false
+      addresses:
+        - 10.10.10.20/24
+      routes:
+        - to: default
+          via: 10.10.10.1
+      nameservers:
+        addresses: [1.1.1.1, 9.9.9.9]

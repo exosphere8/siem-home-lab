@@ -1,0 +1,7 @@
+## Excerpt for /etc/wazuh-indexer/jvm.options on wazuh-server.
+##
+## The indexer (OpenSearch) defaults to a heap far larger than a 4 GB VM can afford next to
+## the manager and the dashboard. 1 GB is enough for two or three agents in a lab.
+## Keep Xms and Xmx equal, then: sudo systemctl restart wazuh-indexer
+-Xms1g
+-Xmx1g
