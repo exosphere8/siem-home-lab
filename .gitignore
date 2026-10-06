@@ -48,6 +48,17 @@ __pycache__/
 *.py[cod]
 .venv/
 venv/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Incident reports generated locally from live data stay local until sanitised
+reports/
 
 # ---------------------------------------------------------------
 # OS and editor files
