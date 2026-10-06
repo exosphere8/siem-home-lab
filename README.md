@@ -105,6 +105,10 @@ Full design notes and trade-offs: [docs/architecture/lab-architecture.md](docs/a
   for example), and records the result in a checklist.
 - **Correlation in code.** Patterns that span events and hosts live in `siemlab`, where they are
   unit-tested like any other software.
+- **Count categories, not IDs.** Wazuh records only the final rule of each event, so aggregate
+  rules count shared groups. The post-mortem
+  [Wazuh only remembers the last rule](https://github.com/exosphere8/postmortems/blob/main/wazuh-only-remembers-the-last-rule.md)
+  explains the bug that taught this.
 
 ## Lab Environment
 
