@@ -8,7 +8,7 @@ Run in a normal (non-admin) PowerShell window. All commands are read-only.
 
 ```powershell
 Get-CimInstance Win32_OperatingSystem | Select-Object Caption, Version, OSArchitecture | Format-List
-Get-CimInstance Win32_Processor | Select-Object Name, NumberOfCores, NumberOfLogicalProcessors | Format-List
+Get-CimInstance Win32_Processor | Select-Object Name, NumberOfCores, NumberOfLogicalProcessors, VirtualizationFirmwareEnabled | Format-List
 "RAM (GB): {0:N1}   Hypervisor running: {1}" -f ((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory/1GB), (Get-CimInstance Win32_ComputerSystem).HypervisorPresent
 Get-PhysicalDisk | Select-Object FriendlyName, MediaType, @{n='SizeGB';e={[math]::Round($_.Size/1GB)}} | Format-Table -AutoSize
 git --version
