@@ -1,0 +1,27 @@
+title: Probe For Sensitive Web Paths
+id: 2c2a8656-1b8b-4806-b998-02d3a10dba1c
+status: experimental
+description: |
+    Requests for secrets and admin panels that a normal visitor never asks for: environment
+    files, Git metadata, cloud credentials, admin logins. Mirrors Wazuh rule 100501.
+author: Midnight Croissant
+date: 2026-10-05
+tags:
+    - attack.reconnaissance
+    - attack.t1595.003
+logsource:
+    category: webserver
+detection:
+    selection:
+        cs-uri-stem|contains:
+            - '/.env'
+            - '/.git/'
+            - '/.aws/'
+            - '/.ssh/'
+            - '/wp-login.php'
+            - '/phpmyadmin'
+            - '/server-status'
+    condition: selection
+falsepositives:
+    - Your own health checks against /server-status
+level: low

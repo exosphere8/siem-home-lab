@@ -1,0 +1,24 @@
+title: Security Event Log Cleared
+id: 160ff89d-0445-4884-b39a-496f586f9f85
+status: experimental
+description: |
+    The Security audit log was cleared (event 1102). Legitimate clearing is rare; attackers
+    clear logs to remove evidence. Mirrors Wazuh rule 100206.
+references:
+    - https://learn.microsoft.com/en-us/windows/security/threat-protection/auditing/event-1102
+author: Midnight Croissant
+date: 2026-10-05
+tags:
+    - attack.defense-evasion
+    - attack.t1070.001
+logsource:
+    product: windows
+    service: security
+detection:
+    selection:
+        EventID: 1102
+        Provider_Name: Microsoft-Windows-Eventlog
+    condition: selection
+falsepositives:
+    - Rebuilding a lab machine; document it when it happens
+level: high

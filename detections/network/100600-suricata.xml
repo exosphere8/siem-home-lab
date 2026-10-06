@@ -1,0 +1,52 @@
+<!--
+  Project 7: Suricata network IDS integration          Rule IDs 100600-100699
+  =====================================================================
+  Source:  /var/log/suricata/eve.json on ubuntu-endpoint (JSON), via the agent.
+  Parent:  86601 = built-in "Suricata: Alert - $(alert.signature)".
+  100601-100603 are also children of 100600: the lab signatures carry severity 1 or 2, and
+  without that the generic severity-1 rule would claim them first and hide their mapping.
+  Pairs with the lab signatures in detections/network/suricata-local.rules (sid 1000001+).
+  Deploy:  scripts/deploy/deploy-rules.sh on wazuh-server.
+  Test:    docs/projects/07-suricata.md
+  Status:  Written; pending validation in the lab (optional project).
+-->
+<group name="local,ids,suricata,">
+
+  <rule id="100600" level="12">
+    <if_sid>86601</if_sid>
+    <field name="alert.severity">^1$</field>
+    <description>Suricata: high-severity alert: $(alert.signature)</description>
+    <group>attack,</group>
+  </rule>
+
+  <rule id="100601" level="10">
+    <if_sid>86601, 100600</if_sid>
+    <field name="alert.signature_id">^1000001$</field>
+    <description>Suricata: TCP SYN port scan from $(src_ip)</description>
+    <mitre>
+      <id>T1046</id>
+    </mitre>
+    <group>attack,</group>
+  </rule>
+
+  <rule id="100602" level="10">
+    <if_sid>86601, 100600</if_sid>
+    <field name="alert.signature_id">^1000002$</field>
+    <description>Suricata: SSH connection burst from $(src_ip)</description>
+    <mitre>
+      <id>T1110</id>
+    </mitre>
+    <group>attack,</group>
+  </rule>
+
+  <rule id="100603" level="8">
+    <if_sid>86601, 100600</if_sid>
+    <field name="alert.signature_id">^1000003$</field>
+    <description>Suricata: web scanner user agent from $(src_ip)</description>
+    <mitre>
+      <id>T1595.002</id>
+    </mitre>
+    <group>attack,</group>
+  </rule>
+
+</group>

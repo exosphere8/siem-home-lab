@@ -1,0 +1,12 @@
+# Lab signatures for Suricata (Project 7). Install as /etc/suricata/rules/local.rules and add
+# "local.rules" under rule-files in /etc/suricata/suricata.yaml. SIDs 1000000-1999999 are
+# reserved for local use. Status: written; pending validation in the lab.
+
+# Many SYNs to different ports from one source in a short time: a port scan (T1046).
+alert tcp any any -> $HOME_NET any (msg:"LAB Possible TCP SYN port scan"; flow:stateless; flags:S,12; threshold:type threshold, track by_src, count 20, seconds 10; classtype:attempted-recon; sid:1000001; rev:1;)
+
+# A burst of new SSH connections from one source: brute force at the network layer (T1110).
+alert tcp any any -> $HOME_NET 22 (msg:"LAB SSH connection burst"; flow:to_server; flags:S,12; threshold:type both, track by_src, count 10, seconds 60; classtype:attempted-admin; sid:1000002; rev:1;)
+
+# Well-known scanner user agents in HTTP requests (T1595.002).
+alert http any any -> $HOME_NET any (msg:"LAB Web scanner user agent"; flow:established,to_server; http.user_agent; pcre:"/(sqlmap|nikto|nmap|gobuster|ffuf|Fuzz Faster U Fool|wpscan|nuclei)/i"; classtype:web-application-attack; sid:1000003; rev:2;)

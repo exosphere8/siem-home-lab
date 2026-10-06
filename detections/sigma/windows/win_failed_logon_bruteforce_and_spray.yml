@@ -1,0 +1,73 @@
+title: Windows Failed Logon
+id: 335fd1ed-d506-4d5d-9340-0b9e4725ef56
+name: win_failed_logon
+status: experimental
+description: |
+    A logon attempt failed (Security event 4625). Building block for the two correlation
+    rules below; on its own it is too noisy to alert on.
+references:
+    - https://learn.microsoft.com/en-us/windows/security/threat-protection/auditing/event-4625
+author: Midnight Croissant
+date: 2026-10-05
+tags:
+    - attack.credential-access
+    - attack.t1110
+logsource:
+    product: windows
+    service: security
+detection:
+    selection:
+        EventID: 4625
+    condition: selection
+falsepositives:
+    - Users mistyping their password
+level: low
+---
+title: Windows Password Guessing From One Source
+id: f7cdea9c-ba44-4e72-a745-a17f20b8651b
+status: experimental
+description: |
+    Eight or more failed logons from the same source address within two minutes.
+    Mirrors Wazuh rule 100201.
+author: Midnight Croissant
+date: 2026-10-05
+tags:
+    - attack.credential-access
+    - attack.t1110.001
+correlation:
+    type: event_count
+    rules:
+        - win_failed_logon
+    group-by:
+        - IpAddress
+    timespan: 2m
+    condition:
+        gte: 8
+falsepositives:
+    - A service or scheduled task configured with an expired password
+level: high
+---
+title: Windows Password Spraying From One Source
+id: 7b2cf769-16e2-4c9a-bf3b-ecc628dfae69
+status: experimental
+description: |
+    Failed logons for four or more different accounts from the same source address within
+    ten minutes: one password tried against many users to stay under lockout thresholds.
+author: Midnight Croissant
+date: 2026-10-05
+tags:
+    - attack.credential-access
+    - attack.t1110.003
+correlation:
+    type: value_count
+    rules:
+        - win_failed_logon
+    group-by:
+        - IpAddress
+    timespan: 10m
+    condition:
+        field: TargetUserName
+        gte: 4
+falsepositives:
+    - Shared jump hosts or terminal servers where many users mistype passwords
+level: high

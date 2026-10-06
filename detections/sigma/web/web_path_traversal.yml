@@ -1,0 +1,29 @@
+title: Web Path Traversal Attempt
+id: d99481b0-9da3-4250-9773-9c18417c519e
+status: experimental
+description: |
+    A request trying to escape the web root with ../ sequences or reach well-known system
+    files. Mirrors Wazuh rule 100502.
+author: Midnight Croissant
+date: 2026-10-05
+tags:
+    - attack.initial-access
+    - attack.t1190
+logsource:
+    category: webserver
+detection:
+    selection_stem:
+        cs-uri-stem|contains:
+            - '../'
+            - '%2e%2e%2f'
+            - '/etc/passwd'
+            - '/proc/self/'
+    selection_query:
+        cs-uri-query|contains:
+            - '../'
+            - '%2e%2e%2f'
+            - '/etc/passwd'
+    condition: 1 of selection_*
+falsepositives:
+    - Badly written client software that builds relative URLs
+level: medium

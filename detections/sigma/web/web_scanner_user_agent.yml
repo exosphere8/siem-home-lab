@@ -1,0 +1,27 @@
+title: Web Vulnerability Scanner User Agent
+id: 1ae9149d-6755-48a6-b9be-44f891a21b32
+status: experimental
+description: |
+    A request whose User-Agent identifies a common vulnerability or content-discovery scanner.
+    Mirrors Wazuh rule 100500.
+author: Midnight Croissant
+date: 2026-10-05
+tags:
+    - attack.reconnaissance
+    - attack.t1595.002
+logsource:
+    category: webserver
+detection:
+    selection:
+        cs-user-agent|contains:
+            - 'sqlmap'
+            - 'Nikto'
+            - 'Nmap Scripting Engine'
+            - 'gobuster'
+            - 'Fuzz Faster U Fool'
+            - 'WPScan'
+            - 'Nuclei'
+    condition: selection
+falsepositives:
+    - Authorised vulnerability scans
+level: medium

@@ -1,0 +1,23 @@
+title: Local User Account Created
+id: 32a05161-496c-44e9-97ce-30154dd791b3
+status: experimental
+description: |
+    A local user account was created (Security event 4720). Attackers create accounts to
+    keep access. Mirrors Wazuh rule 100204.
+references:
+    - https://learn.microsoft.com/en-us/windows/security/threat-protection/auditing/event-4720
+author: Midnight Croissant
+date: 2026-10-05
+tags:
+    - attack.persistence
+    - attack.t1136.001
+logsource:
+    product: windows
+    service: security
+detection:
+    selection:
+        EventID: 4720
+    condition: selection
+falsepositives:
+    - Onboarding of new users by administrators
+level: medium

@@ -1,0 +1,21 @@
+title: SSH Failed Login As Root
+id: d175d403-44ec-4f1d-88c0-03ccb4ad7404
+status: experimental
+description: |
+    A failed SSH password login for the root account. Root login over SSH should be disabled,
+    so attempts indicate guessing. Mirrors Wazuh rule 100103.
+author: Midnight Croissant
+date: 2026-10-05
+tags:
+    - attack.credential-access
+    - attack.t1110.001
+logsource:
+    product: linux
+    service: sshd
+detection:
+    keywords:
+        - 'Failed password for root from'
+    condition: keywords
+falsepositives:
+    - An administrator who forgot that root login is disabled
+level: medium

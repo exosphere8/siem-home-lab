@@ -1,0 +1,66 @@
+<!--
+  Project 2: Linux SSH brute-force detection          Rule IDs 100100-100199
+  =====================================================================
+  Source:  /var/log/auth.log on ubuntu-endpoint (sshd), via the Wazuh agent.
+  Deploy:  scripts/deploy/deploy-rules.sh on wazuh-server (copies, validates, restarts).
+  Test:    docs/projects/02-ssh-bruteforce.md (wazuh-logtest samples).
+  Status:  Written; pending validation in the lab.
+
+  How the rules chain:
+    100100  re-labels every failed sshd login (any built-in "authentication_failed" rule)
+            with our ID and ATT&CK mapping;
+    100101  fires when one source IP produces 6+ failed logins within 2 minutes. It counts the
+            group ssh_failed_login, not rule 100100, because Wazuh remembers only the *final*
+            rule of each event and failed root logins end as 100103;
+    100102  fires when that same source then logs in successfully within 10 minutes;
+            this is the alert that matters most: the guessing worked;
+    100103  any failed login as root is notable on its own (root SSH should be disabled).
+
+  Note: frequency counting in Wazuh can be off by one relative to the number in the
+  attribute; confirm the exact trigger count with the wazuh-logtest steps in the project doc.
+-->
+<group name="local,syslog,sshd,">
+
+  <rule id="100100" level="5">
+    <if_group>authentication_failed</if_group>
+    <decoded_as>sshd</decoded_as>
+    <description>SSH: failed login for '$(dstuser)' from $(srcip)</description>
+    <mitre>
+      <id>T1110.001</id>
+    </mitre>
+    <group>authentication_failed,ssh_failed_login,</group>
+  </rule>
+
+  <rule id="100101" level="10" frequency="6" timeframe="120" ignore="60">
+    <if_matched_group>ssh_failed_login</if_matched_group>
+    <same_source_ip />
+    <description>SSH: brute force from $(srcip): 6+ failed logins within 2 minutes</description>
+    <mitre>
+      <id>T1110.001</id>
+    </mitre>
+    <group>authentication_failures,attack,</group>
+  </rule>
+
+  <rule id="100102" level="13" timeframe="600">
+    <if_group>authentication_success</if_group>
+    <if_matched_sid>100101</if_matched_sid>
+    <same_source_ip />
+    <description>SSH: login as '$(dstuser)' from $(srcip) after a brute force: possible account compromise</description>
+    <mitre>
+      <id>T1110.001</id>
+      <id>T1078</id>
+    </mitre>
+    <group>authentication_success,attack,</group>
+  </rule>
+
+  <rule id="100103" level="8">
+    <if_sid>100100</if_sid>
+    <user>^root$</user>
+    <description>SSH: failed login as root from $(srcip)</description>
+    <mitre>
+      <id>T1110.001</id>
+    </mitre>
+    <group>authentication_failed,ssh_failed_login,</group>
+  </rule>
+
+</group>

@@ -1,0 +1,69 @@
+<!--
+  Project 4: File-integrity monitoring (Linux)          Rule IDs 100300-100349
+  =====================================================================
+  Source:  Wazuh syscheck (FIM) on ubuntu-endpoint, configured in
+           configs/sanitized/wazuh/agent-linux-ossec.conf (realtime on the paths below).
+  Parents: 550 checksum changed, 553 file deleted, 554 file added (built-in syscheck rules).
+  Deploy:  scripts/deploy/deploy-rules.sh on wazuh-server.
+  Test:    docs/projects/04-file-integrity.md
+  Status:  Written; pending validation in the lab.
+-->
+<group name="local,syscheck,">
+
+  <rule id="100300" level="12">
+    <if_sid>550, 553, 554</if_sid>
+    <field name="file" type="pcre2">^/etc/(passwd|shadow|group|gshadow)$</field>
+    <description>FIM: account database $(file) changed</description>
+    <mitre>
+      <id>T1098</id>
+    </mitre>
+    <group>account_changed,</group>
+  </rule>
+
+  <rule id="100301" level="12">
+    <if_sid>550, 553, 554</if_sid>
+    <field name="file" type="pcre2">^/etc/sudoers(\.d/.*)?$</field>
+    <description>FIM: sudo configuration $(file) changed</description>
+    <mitre>
+      <id>T1548.003</id>
+    </mitre>
+  </rule>
+
+  <rule id="100302" level="10">
+    <if_sid>550, 553, 554</if_sid>
+    <field name="file" type="pcre2">^/(root|home/[^/]+)/\.ssh/authorized_keys2?$</field>
+    <description>FIM: SSH authorized_keys changed: $(file)</description>
+    <mitre>
+      <id>T1098.004</id>
+    </mitre>
+  </rule>
+
+  <rule id="100303" level="10">
+    <if_sid>550, 553, 554</if_sid>
+    <field name="file" type="pcre2">^/(etc/crontab$|etc/cron\.(d|hourly|daily|weekly|monthly)/|var/spool/cron/)</field>
+    <description>FIM: scheduled job changed: $(file)</description>
+    <mitre>
+      <id>T1053.003</id>
+    </mitre>
+  </rule>
+
+  <rule id="100304" level="10">
+    <if_sid>550, 554</if_sid>
+    <field name="file" type="pcre2">^/(etc|usr/lib|lib)/systemd/system/[^/]+\.(service|timer)$</field>
+    <description>FIM: systemd unit added or changed: $(file)</description>
+    <mitre>
+      <id>T1543.002</id>
+    </mitre>
+  </rule>
+
+  <rule id="100305" level="10">
+    <if_sid>550, 554</if_sid>
+    <field name="file" type="pcre2">^/var/www/.*\.(php|phtml|php\d|jsp|jspx|asp|aspx|cgi|pl|py|sh)$</field>
+    <description>FIM: executable file added or changed under the web root: $(file)</description>
+    <mitre>
+      <id>T1505.003</id>
+    </mitre>
+    <group>attack,</group>
+  </rule>
+
+</group>

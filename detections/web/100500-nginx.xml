@@ -1,0 +1,76 @@
+<!--
+  Project 6: Web-server (Nginx) security monitoring    Rule IDs 100500-100599
+  =====================================================================
+  Source:  /var/log/nginx/access.log on ubuntu-endpoint (combined format), via the agent.
+  Parents: 31100 (all access-log lines) and 31101 (4xx responses). Most probes get a 404,
+           and 31101 would otherwise claim them before our rules are evaluated.
+  100504 counts the group web_sensitive_probe, which both 100501 and 100505 carry: a scanner
+  with its default user agent ends as 100500/100505, never as 100501.
+  Deploy:  scripts/deploy/deploy-rules.sh on wazuh-server.
+  Test:    docs/projects/06-nginx.md
+  Status:  Written; pending validation in the lab.
+-->
+<group name="local,web,accesslog,">
+
+  <rule id="100500" level="8">
+    <if_sid>31100, 31101</if_sid>
+    <match type="pcre2">(?i)(\b(sqlmap|nikto|nmap|gobuster|ffuf|dirbuster|wpscan|masscan|zgrab|nuclei)\b|fuzz faster u fool)</match>
+    <description>Web: scanner user agent from $(srcip)</description>
+    <mitre>
+      <id>T1595.002</id>
+    </mitre>
+    <group>attack,</group>
+  </rule>
+
+  <rule id="100501" level="6">
+    <if_sid>31100, 31101</if_sid>
+    <url type="pcre2">(?i)/(\.env|\.git/|\.aws/|\.ssh/|wp-login\.php|phpmyadmin|server-status|\.DS_Store)</url>
+    <description>Web: probe for sensitive path $(url) from $(srcip)</description>
+    <mitre>
+      <id>T1595.003</id>
+    </mitre>
+    <group>web_sensitive_probe,</group>
+  </rule>
+
+  <rule id="100505" level="8">
+    <if_sid>100500</if_sid>
+    <url type="pcre2">(?i)/(\.env|\.git/|\.aws/|\.ssh/|wp-login\.php|phpmyadmin|server-status|\.DS_Store)</url>
+    <description>Web: scanner probing sensitive path $(url) from $(srcip)</description>
+    <mitre>
+      <id>T1595.002</id>
+      <id>T1595.003</id>
+    </mitre>
+    <group>attack,web_sensitive_probe,</group>
+  </rule>
+
+  <rule id="100502" level="10">
+    <if_sid>31100, 31101</if_sid>
+    <url type="pcre2">(?i)(\.\./|%2e%2e(%2f|/)|/etc/passwd|/proc/self/)</url>
+    <description>Web: path traversal attempt from $(srcip): $(url)</description>
+    <mitre>
+      <id>T1190</id>
+    </mitre>
+    <group>attack,</group>
+  </rule>
+
+  <rule id="100503" level="10">
+    <if_sid>31100, 31101</if_sid>
+    <url type="pcre2">(?i)(union(\s|\+|%20)+(all(\s|\+|%20)+)?select|'(\s|%20)*or(\s|%20)*'?1'?(\s|%20)*=(\s|%20)*'?1|sleep(\(|%28)\d+)</url>
+    <description>Web: SQL injection attempt from $(srcip)</description>
+    <mitre>
+      <id>T1190</id>
+    </mitre>
+    <group>attack,</group>
+  </rule>
+
+  <rule id="100504" level="10" frequency="10" timeframe="60" ignore="120">
+    <if_matched_group>web_sensitive_probe</if_matched_group>
+    <same_source_ip />
+    <description>Web: content discovery from $(srcip): 10+ sensitive-path probes within 1 minute</description>
+    <mitre>
+      <id>T1595.003</id>
+    </mitre>
+    <group>attack,</group>
+  </rule>
+
+</group>

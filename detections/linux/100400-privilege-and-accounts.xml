@@ -1,0 +1,53 @@
+<!--
+  Project 5: Linux privilege and account monitoring    Rule IDs 100400-100499
+  =====================================================================
+  Source:  /var/log/auth.log on ubuntu-endpoint (useradd, usermod, gpasswd, sudo).
+  Deploy:  scripts/deploy/deploy-rules.sh on wazuh-server.
+  Test:    docs/projects/05-privilege-and-accounts.md
+  Status:  Written; pending validation in the lab.
+
+  100401 has no parent rule on purpose: it must see usermod/gpasswd lines even if no
+  built-in rule matched them. If wazuh-logtest shows a built-in rule winning instead,
+  add that rule's ID as <if_sid> (the project doc shows how).
+-->
+<group name="local,syslog,linux_accounts,">
+
+  <rule id="100400" level="8">
+    <if_group>adduser</if_group>
+    <description>Linux: new local account or group created ($(dstuser))</description>
+    <mitre>
+      <id>T1136.001</id>
+    </mitre>
+    <group>account_changed,</group>
+  </rule>
+
+  <rule id="100401" level="12">
+    <program_name type="pcre2">^(usermod|gpasswd)$</program_name>
+    <regex type="pcre2">(?i)(add '?[\w.$-]+'? to (shadow )?group '?(sudo|admin|wheel)'?|added by \S+ to group (sudo|admin|wheel))</regex>
+    <description>Linux: account added to an administrative group (sudo/admin/wheel)</description>
+    <mitre>
+      <id>T1098</id>
+    </mitre>
+    <group>account_changed,attack,</group>
+  </rule>
+
+  <rule id="100402" level="10">
+    <if_group>sudo</if_group>
+    <regex type="pcre2">COMMAND=(/usr)?/bin/((ba|z|da|k|fi)?sh|su)(\s|$)</regex>
+    <description>Linux: interactive root shell via sudo by '$(srcuser)'</description>
+    <mitre>
+      <id>T1548.003</id>
+    </mitre>
+  </rule>
+
+  <rule id="100403" level="10">
+    <if_group>sudo</if_group>
+    <match>incorrect password attempts</match>
+    <description>Linux: repeated sudo password failures by '$(srcuser)'</description>
+    <mitre>
+      <id>T1548.003</id>
+    </mitre>
+    <group>authentication_failed,</group>
+  </rule>
+
+</group>

@@ -1,0 +1,25 @@
+title: Account Added To Local Administrators Group
+id: 17e69d77-3f78-4fb4-965d-f50ce3ae7dc4
+status: experimental
+description: |
+    A member was added to the built-in local Administrators group (S-1-5-32-544).
+    Mirrors Wazuh rule 100205.
+references:
+    - https://learn.microsoft.com/en-us/windows/security/threat-protection/auditing/event-4732
+author: Midnight Croissant
+date: 2026-10-05
+tags:
+    - attack.persistence
+    - attack.privilege-escalation
+    - attack.t1098
+logsource:
+    product: windows
+    service: security
+detection:
+    selection:
+        EventID: 4732
+        TargetSid: S-1-5-32-544
+    condition: selection
+falsepositives:
+    - Planned administration; confirm against change records
+level: high

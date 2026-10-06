@@ -1,0 +1,30 @@
+title: Linux Account Added To Administrative Group
+id: 50215332-ced7-4c1c-95bc-7f5aee92b6eb
+status: experimental
+description: |
+    usermod or gpasswd added an account to sudo, admin or wheel, which grants root via sudo.
+    Mirrors Wazuh rule 100401.
+author: Midnight Croissant
+date: 2026-10-05
+tags:
+    - attack.persistence
+    - attack.privilege-escalation
+    - attack.t1098
+logsource:
+    product: linux
+    service: auth
+detection:
+    keywords_tool:
+        - 'usermod'
+        - 'gpasswd'
+    keywords_group:
+        - "to group 'sudo'"
+        - "to group 'admin'"
+        - "to group 'wheel'"
+        - 'to group sudo'
+        - 'to group admin'
+        - 'to group wheel'
+    condition: keywords_tool and keywords_group
+falsepositives:
+    - Planned administration; confirm against change records
+level: high

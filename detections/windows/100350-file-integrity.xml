@@ -1,0 +1,33 @@
+<!--
+  Project 4: File-integrity monitoring (Windows)        Rule IDs 100350-100399
+  =====================================================================
+  Source:  Wazuh syscheck (FIM) on win11-endpoint, configured in
+           configs/sanitized/wazuh/agent-windows-ossec.conf.
+           Wazuh reports Windows paths in lower case.
+  Deploy:  scripts/deploy/deploy-rules.sh on wazuh-server.
+  Test:    docs/projects/04-file-integrity.md
+  Status:  Written; pending validation in the lab.
+-->
+<group name="local,syscheck,windows,">
+
+  <rule id="100350" level="10">
+    <if_sid>550, 554</if_sid>
+    <field name="file" type="pcre2">(?i)^c:\\(users\\[^\\]+\\appdata\\roaming|programdata)\\microsoft\\windows\\start menu\\programs\\startup\\</field>
+    <description>FIM: file added to a Windows Startup folder: $(file)</description>
+    <mitre>
+      <id>T1547.001</id>
+    </mitre>
+    <group>attack,</group>
+  </rule>
+
+  <rule id="100351" level="10">
+    <if_sid>550, 554</if_sid>
+    <field name="file" type="pcre2">(?i)^c:\\inetpub\\wwwroot\\.*\.(aspx?|ashx|asmx|php|jsp)$</field>
+    <description>FIM: executable file added or changed under the IIS web root: $(file)</description>
+    <mitre>
+      <id>T1505.003</id>
+    </mitre>
+    <group>attack,</group>
+  </rule>
+
+</group>
