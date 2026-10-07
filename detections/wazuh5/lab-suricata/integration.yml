@@ -1,0 +1,7 @@
+metadata:
+  title: lab-suricata
+  author: Midnight Croissant
+  description: Suricata alerts from the lab signatures (Project 7).
+  documentation: https://github.com/exosphere8/siem-home-lab/blob/main/docs/projects/07-suricata.md
+category: network-activity
+enabled: true

@@ -1,0 +1,35 @@
+metadata:
+  title: Linux account added to an administrative group
+  author: Midnight Croissant
+  date: '2026-10-07'
+  description: usermod or gpasswd added an account to sudo, admin or wheel.
+  references:
+  - Migrated from Wazuh 4.x rule 100401
+status: experimental
+level: high
+enabled: true
+logsource:
+  product: lab-linux-accounts
+detection:
+  condition: selection
+  selection:
+    process.name:
+    - usermod
+    - gpasswd
+    message|re|i: (add '?[\w.$-]+'? to (shadow )?group '?(sudo|admin|wheel)'?|added by \S+ to group (sudo|admin|wheel))
+tags:
+- attack.persistence
+- attack.t1098
+falsepositives:
+- Planned administrator changes
+mitre:
+  tactic:
+    id:
+    - TA0003
+    name:
+    - Persistence
+  technique:
+    id:
+    - T1098
+    name:
+    - Account Manipulation

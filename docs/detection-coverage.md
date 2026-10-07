@@ -4,31 +4,32 @@
      by hand: CI fails if this file is out of date with the rules in detections/. -->
 
 33 Wazuh rules, 11 Sigma rules and 3 Suricata signatures cover 18 ATT&CK techniques.
+The Wazuh 5 content pack has 30 rules in 6 integrations; see [Wazuh 5 migration](#wazuh-5-migration).
 Every rule is **written and statically validated in CI**. Lab validation status is
 tracked per project in the README roadmap.
 
 ## ATT&CK coverage
 
-| Tactic | Technique | Wazuh rules | Sigma rules |
-|---|---|---|---|
-| Reconnaissance | [T1595.002](https://attack.mitre.org/techniques/T1595/002/) Active Scanning: Vulnerability Scanning | 100500, 100505, 100603 | Web Vulnerability Scanner User Agent |
-| Reconnaissance | [T1595.003](https://attack.mitre.org/techniques/T1595/003/) Active Scanning: Wordlist Scanning | 100501, 100504, 100505 | Probe For Sensitive Web Paths |
-| Initial Access | [T1078](https://attack.mitre.org/techniques/T1078/) Valid Accounts | 100102 | - |
-| Initial Access | [T1190](https://attack.mitre.org/techniques/T1190/) Exploit Public-Facing Application | 100502, 100503 | Web Path Traversal Attempt |
-| Persistence | [T1053.003](https://attack.mitre.org/techniques/T1053/003/) Scheduled Task/Job: Cron | 100303 | - |
-| Persistence | [T1098](https://attack.mitre.org/techniques/T1098/) Account Manipulation | 100205, 100300, 100401 | Account Added To Local Administrators Group<br>Linux Account Added To Administrative Group |
-| Persistence | [T1098.004](https://attack.mitre.org/techniques/T1098/004/) Account Manipulation: SSH Authorized Keys | 100302 | - |
-| Persistence | [T1136.001](https://attack.mitre.org/techniques/T1136/001/) Create Account: Local Account | 100204, 100400 | Local User Account Created |
-| Persistence | [T1505.003](https://attack.mitre.org/techniques/T1505/003/) Server Software Component: Web Shell | 100305, 100351 | - |
-| Persistence | [T1543.002](https://attack.mitre.org/techniques/T1543/002/) Create or Modify System Process: Systemd Service | 100304 | - |
-| Persistence | [T1547.001](https://attack.mitre.org/techniques/T1547/001/) Boot or Logon Autostart Execution: Registry Run Keys / Startup Folder | 100350 | - |
-| Privilege Escalation | [T1548.003](https://attack.mitre.org/techniques/T1548/003/) Abuse Elevation Control Mechanism: Sudo and Sudo Caching | 100301, 100402, 100403 | - |
-| Defense Evasion | [T1070.001](https://attack.mitre.org/techniques/T1070/001/) Indicator Removal: Clear Windows Event Logs | 100206 | Security Event Log Cleared |
-| Credential Access | [T1110](https://attack.mitre.org/techniques/T1110/) Brute Force | 100200, 100202, 100602 | Windows Failed Logon |
-| Credential Access | [T1110.001](https://attack.mitre.org/techniques/T1110/001/) Brute Force: Password Guessing | 100100, 100101, 100102, 100103, 100201 | SSH Failed Login As Root<br>Windows Password Guessing From One Source |
-| Credential Access | [T1110.003](https://attack.mitre.org/techniques/T1110/003/) Brute Force: Password Spraying | - | Windows Password Spraying From One Source |
-| Discovery | [T1046](https://attack.mitre.org/techniques/T1046/) Network Service Discovery | 100601 | - |
-| Lateral Movement | [T1021.001](https://attack.mitre.org/techniques/T1021/001/) Remote Services: Remote Desktop Protocol | 100203 | - |
+| Tactic | Technique | Wazuh rules | Sigma rules | Wazuh 5 rules |
+|---|---|---|---|---|
+| Reconnaissance | [T1595.002](https://attack.mitre.org/techniques/T1595/002/) Active Scanning: Vulnerability Scanning | 100500, 100505, 100603 | Web Vulnerability Scanner User Agent | Suricata web scanner user agent<br>Web scanner user agent |
+| Reconnaissance | [T1595.003](https://attack.mitre.org/techniques/T1595/003/) Active Scanning: Wordlist Scanning | 100501, 100504, 100505 | Probe For Sensitive Web Paths | Web probe for a sensitive path |
+| Initial Access | [T1078](https://attack.mitre.org/techniques/T1078/) Valid Accounts | 100102 | - | - |
+| Initial Access | [T1190](https://attack.mitre.org/techniques/T1190/) Exploit Public-Facing Application | 100502, 100503 | Web Path Traversal Attempt | Web SQL injection attempt<br>Web path traversal attempt |
+| Persistence | [T1053.003](https://attack.mitre.org/techniques/T1053/003/) Scheduled Task/Job: Cron | 100303 | - | FIM scheduled job changed |
+| Persistence | [T1098](https://attack.mitre.org/techniques/T1098/) Account Manipulation | 100205, 100300, 100401 | Account Added To Local Administrators Group<br>Linux Account Added To Administrative Group | FIM account database changed<br>Linux account added to an administrative group<br>Windows account added to Administrators |
+| Persistence | [T1098.004](https://attack.mitre.org/techniques/T1098/004/) Account Manipulation: SSH Authorized Keys | 100302 | - | FIM SSH authorized_keys changed |
+| Persistence | [T1136.001](https://attack.mitre.org/techniques/T1136/001/) Create Account: Local Account | 100204, 100400 | Local User Account Created | Linux local account or group created<br>Windows local account created |
+| Persistence | [T1505.003](https://attack.mitre.org/techniques/T1505/003/) Server Software Component: Web Shell | 100305, 100351 | - | FIM executable file in the IIS web root<br>FIM executable file in the web root |
+| Persistence | [T1543.002](https://attack.mitre.org/techniques/T1543/002/) Create or Modify System Process: Systemd Service | 100304 | - | FIM systemd unit added or changed |
+| Persistence | [T1547.001](https://attack.mitre.org/techniques/T1547/001/) Boot or Logon Autostart Execution: Registry Run Keys / Startup Folder | 100350 | - | FIM file added to a Windows Startup folder |
+| Privilege Escalation | [T1548.003](https://attack.mitre.org/techniques/T1548/003/) Abuse Elevation Control Mechanism: Sudo and Sudo Caching | 100301, 100402, 100403 | - | FIM sudo configuration changed<br>Linux interactive root shell via sudo<br>Linux repeated sudo password failures |
+| Defense Evasion | [T1070.001](https://attack.mitre.org/techniques/T1070/001/) Indicator Removal: Clear Windows Event Logs | 100206 | Security Event Log Cleared | Windows Security audit log cleared |
+| Credential Access | [T1110](https://attack.mitre.org/techniques/T1110/) Brute Force | 100200, 100202, 100602 | Windows Failed Logon | Suricata SSH connection burst<br>Windows account locked out<br>Windows failed logon |
+| Credential Access | [T1110.001](https://attack.mitre.org/techniques/T1110/001/) Brute Force: Password Guessing | 100100, 100101, 100102, 100103, 100201 | SSH Failed Login As Root<br>Windows Password Guessing From One Source | SSH failed login<br>SSH failed login as root |
+| Credential Access | [T1110.003](https://attack.mitre.org/techniques/T1110/003/) Brute Force: Password Spraying | - | Windows Password Spraying From One Source | - |
+| Discovery | [T1046](https://attack.mitre.org/techniques/T1046/) Network Service Discovery | 100601 | - | Suricata TCP SYN port scan |
+| Lateral Movement | [T1021.001](https://attack.mitre.org/techniques/T1021/001/) Remote Services: Remote Desktop Protocol | 100203 | - | Windows RDP logon |
 
 Rules without a technique mapping (generic escalations): 100600.
 
@@ -85,3 +86,46 @@ Rules without a technique mapping (generic escalations): 100600.
 | Local User Account Created | rule | medium | T1136.001 | `detections/sigma/windows/win_local_account_created.yml` |
 | Account Added To Local Administrators Group | rule | high | T1098 | `detections/sigma/windows/win_local_admin_group_member_added.yml` |
 | Security Event Log Cleared | rule | high | T1070.001 | `detections/sigma/windows/win_security_log_cleared.yml` |
+
+## Wazuh 5 migration
+
+Where each Wazuh 4.x rule went (`detections/wazuh5/migration.yml`). Wazuh 5 rules match
+one event at a time, so the rules that count events moved into `siemlab correlate`.
+
+| 4.x rule | Level | Wazuh 5 | Level | Note |
+|---|---|---|---|---|
+| 100100 | 5 | SSH failed login | low |  |
+| 100101 | 10 | `siemlab:brute_force` | - | Counts failed logins per source (6 in 2 minutes). Wazuh 5 rules cannot count. |
+| 100102 | 13 | `siemlab:credential_compromise` | - | A successful login after a brute force needs the history of earlier events. |
+| 100103 | 8 | SSH failed login as root | medium |  |
+| 100200 | 5 | Windows failed logon | low |  |
+| 100201 | 10 | `siemlab:brute_force` | - | Counts failed Windows logons per source. Wazuh 5 rules cannot count. |
+| 100202 | 8 | Windows account locked out | medium |  |
+| 100203 | 6 | Windows RDP logon | low |  |
+| 100204 | 8 | Windows local account created | medium |  |
+| 100205 | 12 | Windows account added to Administrators | high |  |
+| 100206 | 12 | Windows Security audit log cleared | high |  |
+| 100300 | 12 | FIM account database changed | high |  |
+| 100301 | 12 | FIM sudo configuration changed | high |  |
+| 100302 | 10 | FIM SSH authorized_keys changed | high |  |
+| 100303 | 10 | FIM scheduled job changed | high |  |
+| 100304 | 10 | FIM systemd unit added or changed | high |  |
+| 100305 | 10 | FIM executable file in the web root | high |  |
+| 100350 | 10 | FIM file added to a Windows Startup folder | high |  |
+| 100351 | 10 | FIM executable file in the IIS web root | high |  |
+| 100400 | 8 | Linux local account or group created | medium |  |
+| 100401 | 12 | Linux account added to an administrative group | high |  |
+| 100402 | 10 | Linux interactive root shell via sudo | high |  |
+| 100403 | 10 | Linux repeated sudo password failures | high |  |
+| 100500 | 8 | Web scanner user agent | medium |  |
+| 100501 | 6 | Web probe for a sensitive path | low |  |
+| 100502 | 10 | Web path traversal attempt | high |  |
+| 100503 | 10 | Web SQL injection attempt | high |  |
+| 100504 | 10 | `siemlab:content_discovery` | - | Counts sensitive-path probes per source (10 in 1 minute). Wazuh 5 rules cannot count. |
+| 100505 | 8 | Web probe for a sensitive path | low | Existed only because Wazuh 4 reports the deepest rule: a scanner probing /.env ended as 100500 and never reached 100501. Wazuh 5 writes a finding for every matching rule, so 'Web scanner user agent' and 'Web probe for a sensitive path' both fire. |
+| 100600 | 12 | Suricata high-severity alert | high |  |
+| 100601 | 10 | Suricata TCP SYN port scan | high |  |
+| 100602 | 10 | Suricata SSH connection burst | high |  |
+| 100603 | 8 | Suricata web scanner user agent | medium |  |
+
+New in the Wazuh 5 pack (4.x used built-in rules): SSH successful login, Windows logon from a network address.

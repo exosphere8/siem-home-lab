@@ -1,0 +1,39 @@
+metadata:
+  title: SSH failed login
+  author: Midnight Croissant
+  date: '2026-10-07'
+  description: A failed sshd login, for any account. One failure is routine; siemlab counts them per source.
+  references:
+  - Migrated from Wazuh 4.x rule 100100
+status: experimental
+level: low
+enabled: true
+logsource:
+  product: lab-ssh
+detection:
+  condition: selection
+  selection:
+    process.name: sshd
+    message|re: (Failed (password|publickey|keyboard-interactive/pam|none) for |Invalid user )
+tags:
+- attack.credential-access
+- attack.t1110.001
+- lab.authentication_failed
+falsepositives:
+- Users mistyping their password
+mitre:
+  tactic:
+    id:
+    - TA0006
+    name:
+    - Credential Access
+  technique:
+    id:
+    - T1110
+    name:
+    - Brute Force
+  subtechnique:
+    id:
+    - T1110.001
+    name:
+    - 'Brute Force: Password Guessing'

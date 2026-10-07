@@ -1,0 +1,40 @@
+metadata:
+  title: Linux local account or group created
+  author: Midnight Croissant
+  date: '2026-10-07'
+  description: useradd or groupadd created a local account or group.
+  references:
+  - Migrated from Wazuh 4.x rule 100400
+status: experimental
+level: medium
+enabled: true
+logsource:
+  product: lab-linux-accounts
+detection:
+  condition: selection
+  selection:
+    process.name:
+    - useradd
+    - groupadd
+    message|re: 'new (user|group): name='
+tags:
+- attack.persistence
+- attack.t1136.001
+falsepositives:
+- Onboarding of new users by administrators
+mitre:
+  tactic:
+    id:
+    - TA0003
+    name:
+    - Persistence
+  technique:
+    id:
+    - T1136
+    name:
+    - Create Account
+  subtechnique:
+    id:
+    - T1136.001
+    name:
+    - 'Create Account: Local Account'

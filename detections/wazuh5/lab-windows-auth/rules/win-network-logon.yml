@@ -1,0 +1,21 @@
+metadata:
+  title: Windows logon from a network address
+  author: Midnight Croissant
+  date: '2026-10-07'
+  description: Event 4624 with a source address. Informational on its own; siemlab needs it to see a password guess that worked.
+  references:
+  - New in the Wazuh 5 migration
+status: experimental
+level: informational
+enabled: true
+logsource:
+  product: lab-windows-auth
+detection:
+  condition: selection
+  selection:
+    event.code: '4624'
+    source.ip|exists: true
+tags:
+- lab.authentication_success
+falsepositives:
+- Every legitimate network logon

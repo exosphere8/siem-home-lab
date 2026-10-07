@@ -1,0 +1,33 @@
+metadata:
+  title: Suricata TCP SYN port scan
+  author: Midnight Croissant
+  date: '2026-10-07'
+  description: 'Lab signature 1000001: many SYNs to different ports from one source.'
+  references:
+  - Migrated from Wazuh 4.x rule 100601
+status: experimental
+level: high
+enabled: true
+logsource:
+  product: lab-suricata
+detection:
+  condition: selection
+  selection:
+    wazuh.protocol.location|endswith: eve.json
+    rule.id: '1000001'
+tags:
+- attack.discovery
+- attack.t1046
+falsepositives:
+- Authorised network scans
+mitre:
+  tactic:
+    id:
+    - TA0007
+    name:
+    - Discovery
+  technique:
+    id:
+    - T1046
+    name:
+    - Network Service Discovery

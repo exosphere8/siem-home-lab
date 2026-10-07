@@ -1,0 +1,7 @@
+metadata:
+  title: lab-nginx
+  author: Midnight Croissant
+  description: Nginx access-log attacks on ubuntu-endpoint (Project 6).
+  documentation: https://github.com/exosphere8/siem-home-lab/blob/main/docs/projects/06-nginx.md
+category: applications
+enabled: true

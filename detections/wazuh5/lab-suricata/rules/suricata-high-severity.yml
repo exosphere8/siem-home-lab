@@ -1,0 +1,20 @@
+metadata:
+  title: Suricata high-severity alert
+  author: Midnight Croissant
+  date: '2026-10-07'
+  description: Any Suricata alert with severity 1, the highest.
+  references:
+  - Migrated from Wazuh 4.x rule 100600
+status: experimental
+level: high
+enabled: true
+logsource:
+  product: lab-suricata
+detection:
+  condition: selection
+  selection:
+    wazuh.protocol.location|endswith: eve.json
+    event.severity: 1
+    rule.id|exists: true
+falsepositives:
+- Noisy signatures that need tuning

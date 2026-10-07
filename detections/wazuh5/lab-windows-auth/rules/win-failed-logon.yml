@@ -1,0 +1,33 @@
+metadata:
+  title: Windows failed logon
+  author: Midnight Croissant
+  date: '2026-10-07'
+  description: 'Event 4625: an account failed to log on.'
+  references:
+  - Migrated from Wazuh 4.x rule 100200
+status: experimental
+level: low
+enabled: true
+logsource:
+  product: lab-windows-auth
+detection:
+  condition: selection
+  selection:
+    event.code: '4625'
+tags:
+- attack.credential-access
+- attack.t1110
+- lab.authentication_failed
+falsepositives:
+- Users mistyping their password
+mitre:
+  tactic:
+    id:
+    - TA0006
+    name:
+    - Credential Access
+  technique:
+    id:
+    - T1110
+    name:
+    - Brute Force

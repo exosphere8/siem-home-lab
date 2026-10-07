@@ -18,6 +18,8 @@ Sigma rules (``detections/sigma/**/*.yml``)
 
 Suricata rules (``detections/**/*.rules``)
   * every rule has ``msg``, a unique ``sid`` in the local range 1000000-1999999, and ``rev``.
+
+The Wazuh 5 content pack (``detections/wazuh5``) is validated by :mod:`siemlab.wazuh5`.
 """
 
 from __future__ import annotations
@@ -29,11 +31,14 @@ from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import yaml
 
 from . import mitre
+
+if TYPE_CHECKING:
+    from .wazuh5 import Pack
 
 CUSTOM_RANGE = range(100000, 120000)
 SURICATA_LOCAL_RANGE = range(1000000, 2000000)
@@ -333,6 +338,8 @@ def load_catalogue(detections: Path) -> Catalogue:
         cat.wazuh.extend(parse_wazuh_file(path, root, cat.issues))
     collections: list[Any] = []
     for path in sorted(detections.rglob("*.yml")):
+        if "wazuh5" in path.relative_to(detections).parts:
+            continue  # Wazuh 5 rules are Sigma-like but not Sigma: see siemlab.wazuh5
         cat.sigma.extend(parse_sigma_file(path, root, cat.issues, collections))
     _pysigma_resolve(collections, cat.issues)
     sid_files: dict[int, str] = {}
@@ -357,18 +364,22 @@ def load_catalogue(detections: Path) -> Catalogue:
     return cat
 
 
-def coverage_markdown(cat: Catalogue) -> str:
+def coverage_markdown(cat: Catalogue, pack: Pack | None = None) -> str:
     """Deterministic Markdown: ATT&CK coverage matrix plus the full Wazuh rule catalogue."""
     wazuh_by_t: dict[str, list[int]] = defaultdict(list)
     sigma_by_t: dict[str, list[str]] = defaultdict(list)
+    wazuh5_by_t: dict[str, list[str]] = defaultdict(list)
     for r in cat.wazuh:
         for t in r.techniques:
             wazuh_by_t[t].append(r.id)
     for s in cat.sigma:
         for t in s.techniques:
             sigma_by_t[t].append(s.title)
+    for w in pack.rules if pack else ():
+        for t in w.techniques:
+            wazuh5_by_t[t].append(w.title)
     techniques = sorted(
-        set(wazuh_by_t) | set(sigma_by_t),
+        set(wazuh_by_t) | set(sigma_by_t) | set(wazuh5_by_t),
         key=lambda t: (
             mitre.TACTIC_ORDER.index(mitre.tactic(t))
             if mitre.tactic(t) in mitre.TACTIC_ORDER
@@ -385,19 +396,30 @@ def coverage_markdown(cat: Catalogue) -> str:
         "",
         f"{len(cat.wazuh)} Wazuh rules, {len(cat.sigma)} Sigma rules and "
         f"{len(cat.suricata_sids)} Suricata signatures cover {len(techniques)} ATT&CK techniques.",
+        *(
+            [
+                f"The Wazuh 5 content pack has {len(pack.rules)} rules in "
+                f"{len(pack.integrations)} integrations; see "
+                "[Wazuh 5 migration](#wazuh-5-migration).",
+            ]
+            if pack
+            else []
+        ),
         "Every rule is **written and statically validated in CI**. Lab validation status is",
         "tracked per project in the README roadmap.",
         "",
         "## ATT&CK coverage",
         "",
-        "| Tactic | Technique | Wazuh rules | Sigma rules |",
-        "|---|---|---|---|",
+        "| Tactic | Technique | Wazuh rules | Sigma rules | Wazuh 5 rules |",
+        "|---|---|---|---|---|",
     ]
     for t in techniques:
         rules = ", ".join(str(i) for i in sorted(wazuh_by_t.get(t, []))) or "-"
         sigma = "<br>".join(sorted(sigma_by_t.get(t, []))) or "-"
+        wazuh5 = "<br>".join(sorted(wazuh5_by_t.get(t, []))) or "-"
         lines.append(
-            f"| {mitre.tactic(t)} | [{t}]({mitre.url(t)}) {mitre.name(t)} | {rules} | {sigma} |"
+            f"| {mitre.tactic(t)} | [{t}]({mitre.url(t)}) {mitre.name(t)} | {rules} | {sigma} "
+            f"| {wazuh5} |"
         )
     unmapped = [str(r.id) for r in cat.wazuh if not r.techniques]
     if unmapped:
@@ -428,4 +450,33 @@ def coverage_markdown(cat: Catalogue) -> str:
         lines.append(
             f"| {s.title} | {s.kind} | {s.level} | {', '.join(s.techniques) or '-'} | `{s.file}` |"
         )
+    if pack:
+        lines += _migration_markdown(cat, pack)
     return "\n".join(lines) + "\n"
+
+
+def _migration_markdown(cat: Catalogue, pack: Pack) -> list[str]:
+    by_file = pack.rule_by_file()
+    lines = [
+        "",
+        "## Wazuh 5 migration",
+        "",
+        "Where each Wazuh 4.x rule went (`detections/wazuh5/migration.yml`). Wazuh 5 rules match",
+        "one event at a time, so the rules that count events moved into `siemlab correlate`.",
+        "",
+        "| 4.x rule | Level | Wazuh 5 | Level | Note |",
+        "|---|---|---|---|---|",
+    ]
+    for r in cat.wazuh:
+        entry = pack.migration.get(r.id, {})
+        target = str(entry.get("to", "-"))
+        note = str(entry.get("note", "")).replace("|", "\\|")
+        if target in by_file:
+            new = by_file[target]
+            lines.append(f"| {r.id} | {r.level} | {new.title} | {new.level} | {note} |")
+        else:
+            lines.append(f"| {r.id} | {r.level} | `{target}` | - | {note} |")
+    new_rules = [w.title for w in pack.rules if not w.sources]
+    if new_rules:
+        lines += ["", f"New in the Wazuh 5 pack (4.x used built-in rules): {', '.join(new_rules)}."]
+    return lines

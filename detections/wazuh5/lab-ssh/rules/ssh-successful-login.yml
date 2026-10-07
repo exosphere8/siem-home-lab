@@ -1,0 +1,21 @@
+metadata:
+  title: SSH successful login
+  author: Midnight Croissant
+  date: '2026-10-07'
+  description: A successful sshd login. Informational on its own; siemlab needs it to see a brute force that worked.
+  references:
+  - New in the Wazuh 5 migration
+status: experimental
+level: informational
+enabled: true
+logsource:
+  product: lab-ssh
+detection:
+  condition: selection
+  selection:
+    process.name: sshd
+    message|re: 'Accepted \S+ for '
+tags:
+- lab.authentication_success
+falsepositives:
+- Every legitimate SSH login

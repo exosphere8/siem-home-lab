@@ -1,44 +1,68 @@
 """siemlab: tooling for the SIEM home lab.
 
 Commands:
-  validate    statically check every Wazuh, Sigma and Suricata rule in detections/
+  validate    statically check every Wazuh, Sigma and Suricata rule in detections/,
+              and the Wazuh 5 content pack in detections/wazuh5
   coverage    generate (or check) docs/detection-coverage.md
-  generate    write synthetic Wazuh alerts for the lab's attack scenarios
-  correlate   turn a Wazuh alerts.json into incidents and incident reports
+  generate    write synthetic Wazuh 4.x alerts or Wazuh 5 findings for the lab's scenarios
+  correlate   turn Wazuh 4.x alerts or Wazuh 5 findings into incidents and incident reports
+  wazuh5      deploy the Wazuh 5 content pack to the indexer, or bundle it as JSON
 """
 
 from __future__ import annotations
 
 import argparse
+import getpass
 import io
 import json
 import logging
+import os
 import sys
 from datetime import timedelta
 from pathlib import Path
 
-from . import __version__, alerts, correlate, generate, report, validate
+from . import __version__, alerts, correlate, deploy5, generate, report, validate, wazuh5
 
 log = logging.getLogger("siemlab")
 SEVERITY_RANK = {s: i for i, s in enumerate(correlate.SEVERITIES)}
 
 
+def _load(detections: Path) -> tuple[validate.Catalogue, wazuh5.Pack | None]:
+    """The 4.x catalogue and the Wazuh 5 pack, with the pack's issues added to the catalogue."""
+    cat = validate.load_catalogue(detections)
+    pack = wazuh5.load_pack(detections / "wazuh5", cat.issues)
+    if pack is not None:
+        wazuh5.check_migration(pack, cat, cat.issues)
+    return cat, pack
+
+
+def _require_pack(detections: Path) -> tuple[validate.Catalogue, wazuh5.Pack]:
+    cat, pack = _load(detections)
+    if pack is None:
+        raise FileNotFoundError(f"no Wazuh 5 content pack in {detections / 'wazuh5'}")
+    if cat.errors:
+        raise ValueError("the detections have errors: run `siemlab validate` first")
+    return cat, pack
+
+
 def cmd_validate(args: argparse.Namespace) -> int:
-    cat = validate.load_catalogue(args.detections)
+    cat, pack = _load(args.detections)
     for issue in cat.issues:
         print(issue)
     errors = len(cat.errors)
     warnings = len(cat.issues) - errors
+    wazuh5_count = f", {len(pack.rules)} Wazuh 5 rules" if pack else ""
     print(
         f"{len(cat.wazuh)} Wazuh rules, {len(cat.sigma)} Sigma rules, "
-        f"{len(cat.suricata_sids)} Suricata signatures: {errors} error(s), {warnings} warning(s)",
+        f"{len(cat.suricata_sids)} Suricata signatures{wazuh5_count}: "
+        f"{errors} error(s), {warnings} warning(s)",
         file=sys.stderr,
     )
     return 1 if errors or (args.strict and warnings) else 0
 
 
 def cmd_coverage(args: argparse.Namespace) -> int:
-    text = validate.coverage_markdown(validate.load_catalogue(args.detections))
+    text = validate.coverage_markdown(*_load(args.detections))
     if args.check:
         current = args.check.read_text(encoding="utf-8") if args.check.exists() else ""
         if current.replace("\r\n", "\n") != text:
@@ -58,11 +82,16 @@ def cmd_coverage(args: argparse.Namespace) -> int:
 
 def cmd_generate(args: argparse.Namespace) -> int:
     docs = generate.generate(args.detections, args.scenario or None, args.seed)
+    kind = "alerts"
+    if args.format == "wazuh5":
+        cat, pack = _require_pack(args.detections)
+        docs = wazuh5.findings_from_wazuh4(docs, pack, cat)
+        kind = "findings"
     lines = "\n".join(alerts.iter_json_lines(docs)) + "\n"
     if args.out:
         args.out.parent.mkdir(parents=True, exist_ok=True)
         args.out.write_text(lines, encoding="utf-8", newline="\n")
-        print(f"wrote {len(docs)} alerts to {args.out}", file=sys.stderr)
+        print(f"wrote {len(docs)} {kind} to {args.out}", file=sys.stderr)
     else:
         sys.stdout.write(lines)
     return 0
@@ -73,7 +102,10 @@ def cmd_correlate(args: argparse.Namespace) -> int:
     cfg = correlate.Config(
         window=timedelta(minutes=args.window),
         brute_force_threshold=args.threshold,
+        stateful=loaded.wazuh5,  # Wazuh 5 rules cannot count events, so siemlab does
     )
+    if loaded.wazuh5:
+        log.info("Wazuh 5 findings: %d merged into the alert of their event", loaded.merged)
     incidents = [
         inc
         for inc in correlate.correlate(loaded.alerts, cfg)
@@ -84,6 +116,7 @@ def cmd_correlate(args: argparse.Namespace) -> int:
         print(
             json.dumps(
                 {
+                    "source": "wazuh5" if loaded.wazuh5 else "wazuh4",
                     "alerts": len(loaded.alerts),
                     "skipped_lines": loaded.skipped,
                     "incidents": [inc.to_dict() for inc in incidents],
@@ -105,6 +138,64 @@ def cmd_correlate(args: argparse.Namespace) -> int:
             )
         print(f"wrote {len(incidents)} incident report(s) to {args.report_dir}", file=sys.stderr)
     return 2 if args.fail_on_incident and incidents else 0
+
+
+def cmd_wazuh5_bundle(args: argparse.Namespace) -> int:
+    _, pack = _require_pack(args.detections)
+    written = wazuh5.bundle(pack, args.out)
+    print(
+        f"wrote {len(written)} file(s) for {len(pack.integrations)} integrations and "
+        f"{len(pack.rules)} rules to {args.out}",
+        file=sys.stderr,
+    )
+    return 0
+
+
+def _password() -> str:
+    """From WAZUH_INDEXER_PASSWORD, or a prompt; never from the command line."""
+    password = os.environ.get("WAZUH_INDEXER_PASSWORD")
+    if password:
+        return password
+    if sys.stdin.isatty():
+        return getpass.getpass("Wazuh indexer password: ")
+    raise ValueError("set WAZUH_INDEXER_PASSWORD (it is never taken as an argument)")
+
+
+def cmd_wazuh5_deploy(args: argparse.Namespace) -> int:
+    _, pack = _require_pack(args.detections)
+    if args.dry_run:
+        for integ in pack.integrations:
+            rules = [r.title for r in pack.rules if r.integration == integ.title]
+            print(f"{integ.title} ({integ.category}): {len(rules)} rule(s)")
+            for title in rules:
+                print(f"  {title}")
+        print(f"{len(pack.logtests)} logtest case(s) would run in the test space")
+        return 0
+    if args.url.startswith("https://") and not (args.ca or args.insecure):
+        raise ValueError("give --ca (the indexer's root CA) or, for a lab only, --insecure")
+    cm = deploy5.ContentManager(
+        args.url, args.user, _password(), ca_file=args.ca, insecure=args.insecure
+    )
+    try:
+        result = deploy5.deploy(
+            pack, cm, promote_custom=args.promote_custom, say=lambda m: print(m, file=sys.stderr)
+        )
+    except deploy5.DeployError as exc:
+        log.error("%s", exc)
+        return 1
+    passed = len(result.logtests) - len(result.failed)
+    print(f"logtest: {passed}/{len(result.logtests)} case(s) passed")
+    for r in result.failed:
+        print(f"FAIL {r.case.integration}: {r.case.event}")
+        print(f"     expected {sorted(r.case.expect)}, matched {sorted(r.matched)}")
+        if r.error:
+            print(f"     {r.error}")
+    if result.failed:
+        print("Not promoted to custom. Fix the rules in the draft space, or adjust them here.")
+        return 1
+    if not result.promoted_to_custom:
+        print("All cases passed. Run again with --promote-custom to put the rules in production.")
+    return 0
 
 
 def _positive_int(value: str) -> int:
@@ -138,7 +229,7 @@ def build_parser() -> argparse.ArgumentParser:
     mode.add_argument("--check", type=Path, metavar="FILE", help="fail if FILE is out of date")
     c.set_defaults(func=cmd_coverage)
 
-    g = sub.add_parser("generate", help="synthetic Wazuh alerts for the lab scenarios")
+    g = sub.add_parser("generate", help="synthetic Wazuh alerts or findings for the scenarios")
     g.add_argument(
         "--scenario",
         action="append",
@@ -146,11 +237,21 @@ def build_parser() -> argparse.ArgumentParser:
         help="scenario to include (repeatable; default: all)",
     )
     g.add_argument("--seed", type=int, default=7)
+    g.add_argument(
+        "--format",
+        choices=["wazuh4", "wazuh5"],
+        default="wazuh4",
+        help="4.x alerts.json lines, or the findings the Wazuh 5 pack would write",
+    )
     g.add_argument("--out", type=Path, help="output file (default: stdout)")
     g.set_defaults(func=cmd_generate)
 
-    r = sub.add_parser("correlate", help="correlate Wazuh alerts into incidents")
-    r.add_argument("alerts", type=Path, help="alerts.json (JSON lines) from the Wazuh manager")
+    r = sub.add_parser("correlate", help="correlate Wazuh alerts or findings into incidents")
+    r.add_argument(
+        "alerts",
+        type=Path,
+        help="JSON lines: 4.x alerts.json, or Wazuh 5 findings (detected automatically)",
+    )
     r.add_argument(
         "--window",
         type=_positive_int,
@@ -173,6 +274,32 @@ def build_parser() -> argparse.ArgumentParser:
         help="exit with status 2 when any incident is found",
     )
     r.set_defaults(func=cmd_correlate)
+
+    w = sub.add_parser("wazuh5", help="Wazuh 5 content pack tools")
+    w_sub = w.add_subparsers(dest="wazuh5_command", required=True, metavar="ACTION")
+    b = w_sub.add_parser("bundle", help="write the Content Manager API request bodies")
+    b.add_argument("--out", type=Path, required=True, metavar="DIR", help="output directory")
+    b.set_defaults(func=cmd_wazuh5_bundle)
+    d = w_sub.add_parser(
+        "deploy", help="create the pack in the draft space, promote to test, and logtest it"
+    )
+    d.add_argument(
+        "--url",
+        default="https://127.0.0.1:9200",
+        help="Wazuh indexer URL (default: https://127.0.0.1:9200)",
+    )
+    d.add_argument("--user", default="admin", help="indexer user (default: admin)")
+    d.add_argument("--ca", type=Path, metavar="FILE", help="CA certificate of the indexer")
+    d.add_argument(
+        "--insecure", action="store_true", help="skip TLS verification (lab only, never prod)"
+    )
+    d.add_argument(
+        "--promote-custom",
+        action="store_true",
+        help="promote test -> custom (production) when every logtest case passes",
+    )
+    d.add_argument("--dry-run", action="store_true", help="list what would be created")
+    d.set_defaults(func=cmd_wazuh5_deploy)
     return p
 
 

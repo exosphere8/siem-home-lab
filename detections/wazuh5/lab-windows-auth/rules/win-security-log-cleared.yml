@@ -1,0 +1,37 @@
+metadata:
+  title: Windows Security audit log cleared
+  author: Midnight Croissant
+  date: '2026-10-07'
+  description: 'Event 1102: the Security audit log was cleared.'
+  references:
+  - Migrated from Wazuh 4.x rule 100206
+status: experimental
+level: high
+enabled: true
+logsource:
+  product: lab-windows-auth
+detection:
+  condition: selection
+  selection:
+    event.code: '1102'
+tags:
+- attack.defense-evasion
+- attack.t1070.001
+falsepositives:
+- Planned log maintenance (rare)
+mitre:
+  tactic:
+    id:
+    - TA0005
+    name:
+    - Defense Evasion
+  technique:
+    id:
+    - T1070
+    name:
+    - Indicator Removal
+  subtechnique:
+    id:
+    - T1070.001
+    name:
+    - 'Indicator Removal: Clear Windows Event Logs'

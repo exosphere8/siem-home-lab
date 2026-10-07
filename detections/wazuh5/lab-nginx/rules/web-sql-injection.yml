@@ -1,0 +1,32 @@
+metadata:
+  title: Web SQL injection attempt
+  author: Midnight Croissant
+  date: '2026-10-07'
+  description: A query string with classic SQL injection patterns.
+  references:
+  - Migrated from Wazuh 4.x rule 100503
+status: experimental
+level: high
+enabled: true
+logsource:
+  product: lab-nginx
+detection:
+  condition: selection
+  selection:
+    url.original|re|i: (union(\s|\+|%20)+(all(\s|\+|%20)+)?select|'(\s|%20)*or(\s|%20)*'?1'?(\s|%20)*=(\s|%20)*'?1|sleep(\(|%28)\d+)
+tags:
+- attack.initial-access
+- attack.t1190
+falsepositives:
+- Search pages that echo SQL keywords
+mitre:
+  tactic:
+    id:
+    - TA0001
+    name:
+    - Initial Access
+  technique:
+    id:
+    - T1190
+    name:
+    - Exploit Public-Facing Application

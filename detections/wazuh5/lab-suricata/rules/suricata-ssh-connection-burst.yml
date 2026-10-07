@@ -1,0 +1,33 @@
+metadata:
+  title: Suricata SSH connection burst
+  author: Midnight Croissant
+  date: '2026-10-07'
+  description: 'Lab signature 1000002: a burst of new SSH connections from one source.'
+  references:
+  - Migrated from Wazuh 4.x rule 100602
+status: experimental
+level: high
+enabled: true
+logsource:
+  product: lab-suricata
+detection:
+  condition: selection
+  selection:
+    wazuh.protocol.location|endswith: eve.json
+    rule.id: '1000002'
+tags:
+- attack.credential-access
+- attack.t1110
+falsepositives:
+- Automation that opens many SSH sessions
+mitre:
+  tactic:
+    id:
+    - TA0006
+    name:
+    - Credential Access
+  technique:
+    id:
+    - T1110
+    name:
+    - Brute Force

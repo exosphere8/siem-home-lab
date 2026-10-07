@@ -1,0 +1,38 @@
+metadata:
+  title: Suricata web scanner user agent
+  author: Midnight Croissant
+  date: '2026-10-07'
+  description: 'Lab signature 1000003: an HTTP request with a scanner user agent.'
+  references:
+  - Migrated from Wazuh 4.x rule 100603
+status: experimental
+level: medium
+enabled: true
+logsource:
+  product: lab-suricata
+detection:
+  condition: selection
+  selection:
+    wazuh.protocol.location|endswith: eve.json
+    rule.id: '1000003'
+tags:
+- attack.reconnaissance
+- attack.t1595.002
+falsepositives:
+- Authorised vulnerability scans
+mitre:
+  tactic:
+    id:
+    - TA0043
+    name:
+    - Reconnaissance
+  technique:
+    id:
+    - T1595
+    name:
+    - Active Scanning
+  subtechnique:
+    id:
+    - T1595.002
+    name:
+    - 'Active Scanning: Vulnerability Scanning'

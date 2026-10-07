@@ -1,0 +1,37 @@
+metadata:
+  title: Windows local account created
+  author: Midnight Croissant
+  date: '2026-10-07'
+  description: 'Event 4720: a user account was created.'
+  references:
+  - Migrated from Wazuh 4.x rule 100204
+status: experimental
+level: medium
+enabled: true
+logsource:
+  product: lab-windows-auth
+detection:
+  condition: selection
+  selection:
+    event.code: '4720'
+tags:
+- attack.persistence
+- attack.t1136.001
+falsepositives:
+- Onboarding of new users by administrators
+mitre:
+  tactic:
+    id:
+    - TA0003
+    name:
+    - Persistence
+  technique:
+    id:
+    - T1136
+    name:
+    - Create Account
+  subtechnique:
+    id:
+    - T1136.001
+    name:
+    - 'Create Account: Local Account'

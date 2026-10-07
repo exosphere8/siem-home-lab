@@ -5,6 +5,10 @@ story?": a brute force that ended in a successful login, one source touching sev
 an account created and then made an administrator. Each correlation rule below turns a
 pattern across alerts into one :class:`Incident` with a severity, a timeline, the ATT&CK
 techniques involved, and a recommended response.
+
+Wazuh 4.x counts events itself (frequency rules such as 100101). Wazuh 5 rules match one event
+at a time, so with ``Config(stateful=True)`` siemlab also does that counting: see
+:data:`STATEFUL_RULES`.
 """
 
 from __future__ import annotations
@@ -31,11 +35,24 @@ class Config:
     multi_host_min: int = 2
     multi_host_min_level: int = 5
     standalone_level: int = 12
+    # Counting that Wazuh 4.x rules did and Wazuh 5 rules cannot (100101, 100201, 100504).
+    stateful: bool = False
+    burst_failures: int = 6
+    burst_window: timedelta = timedelta(minutes=2)
+    discovery_probes: int = 10
+    discovery_window: timedelta = timedelta(minutes=1)
 
     def __post_init__(self) -> None:
-        if self.window <= timedelta(0):
-            raise ValueError("correlation window must be positive")
-        if min(self.brute_force_threshold, self.spray_users, self.multi_host_min) < 1:
+        if min(self.window, self.burst_window, self.discovery_window) <= timedelta(0):
+            raise ValueError("correlation windows must be positive")
+        thresholds = (
+            self.brute_force_threshold,
+            self.spray_users,
+            self.multi_host_min,
+            self.burst_failures,
+            self.discovery_probes,
+        )
+        if min(thresholds) < 1:
             raise ValueError("thresholds must be at least 1")
 
 
@@ -367,6 +384,75 @@ def web_attack_progression(alerts: Sequence[Alert], cfg: Config) -> list[Inciden
     return incidents
 
 
+def brute_force(
+    alerts: Sequence[Alert], cfg: Config, covered: set[int] | None = None
+) -> list[Incident]:
+    """Many failed logins from one source in a short window (Wazuh 4.x rules 100101, 100201).
+
+    Failures already part of another incident (a compromise, a spray) are not counted again.
+    """
+    covered = covered or set()
+    incidents = []
+    for ip, items in _by(alerts, lambda a: a.src_ip).items():
+        failures = [a for a in items if _is_failure(a) and id(a) not in covered]
+        for span in _windows(failures, cfg.burst_window, len, cfg.burst_failures):
+            accounts = sorted({a.user for a in span if a.user})
+            hosts = sorted({a.agent for a in span})
+            incidents.append(
+                Incident(
+                    "brute_force",
+                    f"Brute force from {ip}: {len(span)} failed logins in {_fmt(cfg.burst_window)}",
+                    "high",
+                    f"source {ip}",
+                    f"{ip} failed to log in {len(span)} times within {_fmt(cfg.burst_window)} "
+                    f"on {', '.join(hosts)} (accounts: {', '.join(accounts) or 'unknown'}). "
+                    "No successful login from this source followed in the data.",
+                    span,
+                    (
+                        f"Block {ip} and check whether it logs in successfully later.",
+                        "Confirm root login and password authentication are disabled where "
+                        "they should be.",
+                    ),
+                )
+            )
+    return incidents
+
+
+def content_discovery(
+    alerts: Sequence[Alert], cfg: Config, covered: set[int] | None = None
+) -> list[Incident]:
+    """Many probes for sensitive web paths from one source (Wazuh 4.x rule 100504)."""
+    covered = covered or set()
+    incidents = []
+    for ip, items in _by(alerts, lambda a: a.src_ip).items():
+        probes = [a for a in items if a.has_group("web_sensitive_probe") and id(a) not in covered]
+        for span in _windows(probes, cfg.discovery_window, len, cfg.discovery_probes):
+            urls = sorted({a.url for a in span if a.url})
+            incidents.append(
+                Incident(
+                    "content_discovery",
+                    f"Content discovery from {ip}: {len(span)} sensitive-path probes",
+                    "medium",
+                    f"source {ip}",
+                    f"{ip} requested {len(span)} sensitive paths within "
+                    f"{_fmt(cfg.discovery_window)}, for example "
+                    f"{', '.join(urls[:3]) or 'unknown'}. That is a wordlist scan.",
+                    span,
+                    (
+                        f"Check whether any request from {ip} got a 200 response.",
+                        "Make sure none of the probed files exist under the web root.",
+                    ),
+                )
+            )
+    return incidents
+
+
+StatefulRule = Callable[[Sequence[Alert], Config, set[int]], list[Incident]]
+
+# Run after CORRELATION_RULES when Config.stateful is set, on alerts they did not explain.
+STATEFUL_RULES: tuple[StatefulRule, ...] = (brute_force, content_discovery)
+
+
 def standalone_high_severity(
     alerts: Sequence[Alert], cfg: Config, covered: set[int] | None = None
 ) -> list[Incident]:
@@ -406,6 +492,11 @@ def correlate(alerts: Sequence[Alert], cfg: Config | None = None) -> list[Incide
     ordered = sorted(alerts, key=lambda a: a.timestamp)
     incidents = [inc for rule in CORRELATION_RULES for inc in rule(ordered, cfg)]
     covered = {id(a) for inc in incidents for a in inc.alerts}
+    if cfg.stateful:
+        for stateful_rule in STATEFUL_RULES:
+            found = stateful_rule(ordered, cfg, covered)
+            incidents += found
+            covered |= {id(a) for inc in found for a in inc.alerts}
     incidents += standalone_high_severity(ordered, cfg, covered)
     incidents.sort(key=lambda i: (SEVERITIES.index(i.severity), i.first_seen, i.rule))
     for number, inc in enumerate(incidents, start=1):

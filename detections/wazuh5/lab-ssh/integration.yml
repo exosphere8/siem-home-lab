@@ -1,0 +1,7 @@
+metadata:
+  title: lab-ssh
+  author: Midnight Croissant
+  description: SSH authentication on ubuntu-endpoint (Project 2).
+  documentation: https://github.com/exosphere8/siem-home-lab/blob/main/docs/projects/02-ssh-bruteforce.md
+category: access-management
+enabled: true

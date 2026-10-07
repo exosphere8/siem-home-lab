@@ -1,0 +1,7 @@
+metadata:
+  title: lab-linux-accounts
+  author: Midnight Croissant
+  description: Linux account, group and sudo activity on ubuntu-endpoint (Project 5).
+  documentation: https://github.com/exosphere8/siem-home-lab/blob/main/docs/projects/05-privilege-and-accounts.md
+category: access-management
+enabled: true

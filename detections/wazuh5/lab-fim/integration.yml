@@ -1,0 +1,7 @@
+metadata:
+  title: lab-fim
+  author: Midnight Croissant
+  description: File-integrity monitoring of persistence locations on both endpoints (Project 4).
+  documentation: https://github.com/exosphere8/siem-home-lab/blob/main/docs/projects/04-file-integrity.md
+category: system-activity
+enabled: true

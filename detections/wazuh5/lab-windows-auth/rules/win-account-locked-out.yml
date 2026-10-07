@@ -1,0 +1,32 @@
+metadata:
+  title: Windows account locked out
+  author: Midnight Croissant
+  date: '2026-10-07'
+  description: 'Event 4740: an account was locked out after too many failed logons.'
+  references:
+  - Migrated from Wazuh 4.x rule 100202
+status: experimental
+level: medium
+enabled: true
+logsource:
+  product: lab-windows-auth
+detection:
+  condition: selection
+  selection:
+    event.code: '4740'
+tags:
+- attack.credential-access
+- attack.t1110
+falsepositives:
+- A user who forgot a changed password
+mitre:
+  tactic:
+    id:
+    - TA0006
+    name:
+    - Credential Access
+  technique:
+    id:
+    - T1110
+    name:
+    - Brute Force

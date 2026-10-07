@@ -23,14 +23,18 @@ jobs:
           python-version: "3.13"
           cache: pip
       - run: pip install -e ".[dev]"
-      - name: Wazuh XML, Sigma (pySigma) and Suricata rules
+      - name: Wazuh XML, Sigma (pySigma), Suricata rules and the Wazuh 5 pack
         run: siemlab validate --strict
       - name: Coverage matrix is up to date
         run: siemlab coverage --check docs/detection-coverage.md
-      - name: Synthetic sample matches the current rules
+      - name: Synthetic samples match the current rules
         run: |
           siemlab generate --out /tmp/alerts.json
           diff -u sample-data/sanitized/alerts-synthetic.json /tmp/alerts.json
+          siemlab generate --format wazuh5 --out /tmp/findings.json
+          diff -u sample-data/sanitized/findings-wazuh5-synthetic.json /tmp/findings.json
+      - name: Wazuh 5 pack bundles for the Content Manager API
+        run: siemlab wazuh5 bundle --out /tmp/wazuh5-bundle
 
   python:
     name: siemlab (Python ${{ matrix.python }})

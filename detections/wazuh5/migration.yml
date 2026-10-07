@@ -1,0 +1,75 @@
+# Where each Wazuh 4.x rule went in the Wazuh 5 migration. `siemlab validate` fails if a
+# 4.x rule is missing here, or if a target does not exist.
+rules:
+  100100:
+    to: lab-ssh/rules/ssh-failed-login.yml
+  100101:
+    to: siemlab:brute_force
+    note: Counts failed logins per source (6 in 2 minutes). Wazuh 5 rules cannot count.
+  100102:
+    to: siemlab:credential_compromise
+    note: A successful login after a brute force needs the history of earlier events.
+  100103:
+    to: lab-ssh/rules/ssh-failed-root-login.yml
+  100200:
+    to: lab-windows-auth/rules/win-failed-logon.yml
+  100201:
+    to: siemlab:brute_force
+    note: Counts failed Windows logons per source. Wazuh 5 rules cannot count.
+  100202:
+    to: lab-windows-auth/rules/win-account-locked-out.yml
+  100203:
+    to: lab-windows-auth/rules/win-rdp-logon.yml
+  100204:
+    to: lab-windows-auth/rules/win-local-account-created.yml
+  100205:
+    to: lab-windows-auth/rules/win-admin-group-member-added.yml
+  100206:
+    to: lab-windows-auth/rules/win-security-log-cleared.yml
+  100300:
+    to: lab-fim/rules/fim-account-database.yml
+  100301:
+    to: lab-fim/rules/fim-sudoers.yml
+  100302:
+    to: lab-fim/rules/fim-ssh-authorized-keys.yml
+  100303:
+    to: lab-fim/rules/fim-cron.yml
+  100304:
+    to: lab-fim/rules/fim-systemd-unit.yml
+  100305:
+    to: lab-fim/rules/fim-linux-web-shell.yml
+  100350:
+    to: lab-fim/rules/fim-windows-startup-folder.yml
+  100351:
+    to: lab-fim/rules/fim-iis-web-shell.yml
+  100400:
+    to: lab-linux-accounts/rules/linux-account-created.yml
+  100401:
+    to: lab-linux-accounts/rules/linux-admin-group-member-added.yml
+  100402:
+    to: lab-linux-accounts/rules/linux-sudo-root-shell.yml
+  100403:
+    to: lab-linux-accounts/rules/linux-sudo-password-failures.yml
+  100500:
+    to: lab-nginx/rules/web-scanner-user-agent.yml
+  100501:
+    to: lab-nginx/rules/web-sensitive-path-probe.yml
+  100502:
+    to: lab-nginx/rules/web-path-traversal.yml
+  100503:
+    to: lab-nginx/rules/web-sql-injection.yml
+  100504:
+    to: siemlab:content_discovery
+    note: Counts sensitive-path probes per source (10 in 1 minute). Wazuh 5 rules cannot count.
+  100505:
+    to: lab-nginx/rules/web-sensitive-path-probe.yml
+    note: 'Existed only because Wazuh 4 reports the deepest rule: a scanner probing /.env ended as 100500 and never reached 100501. Wazuh 5 writes a finding for every matching rule, so ''Web scanner user
+      agent'' and ''Web probe for a sensitive path'' both fire.'
+  100600:
+    to: lab-suricata/rules/suricata-high-severity.yml
+  100601:
+    to: lab-suricata/rules/suricata-port-scan.yml
+  100602:
+    to: lab-suricata/rules/suricata-ssh-connection-burst.yml
+  100603:
+    to: lab-suricata/rules/suricata-web-scanner-user-agent.yml

@@ -1,0 +1,43 @@
+metadata:
+  title: SSH failed login as root
+  author: Midnight Croissant
+  date: '2026-10-07'
+  description: A failed sshd login as root. Root login over SSH should be disabled, so attempts indicate guessing.
+  references:
+  - Migrated from Wazuh 4.x rule 100103
+status: experimental
+level: medium
+enabled: true
+logsource:
+  product: lab-ssh
+detection:
+  condition: failed and 1 of root_*
+  failed:
+    process.name: sshd
+    message|re: 'Failed \S+ for '
+  root_field:
+    user.name: root
+  root_text:
+    message|contains: for root from
+tags:
+- attack.credential-access
+- attack.t1110.001
+- lab.authentication_failed
+falsepositives:
+- An administrator who forgot that root login is disabled
+mitre:
+  tactic:
+    id:
+    - TA0006
+    name:
+    - Credential Access
+  technique:
+    id:
+    - T1110
+    name:
+    - Brute Force
+  subtechnique:
+    id:
+    - T1110.001
+    name:
+    - 'Brute Force: Password Guessing'

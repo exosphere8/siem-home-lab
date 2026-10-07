@@ -1,0 +1,37 @@
+metadata:
+  title: Web scanner user agent
+  author: Midnight Croissant
+  date: '2026-10-07'
+  description: A request whose user agent names a well-known web scanner.
+  references:
+  - Migrated from Wazuh 4.x rule 100500
+status: experimental
+level: medium
+enabled: true
+logsource:
+  product: lab-nginx
+detection:
+  condition: selection
+  selection:
+    user_agent.original|re|i: (\b(sqlmap|nikto|nmap|gobuster|ffuf|dirbuster|wpscan|masscan|zgrab|nuclei)\b|fuzz faster u fool)
+tags:
+- attack.reconnaissance
+- attack.t1595.002
+falsepositives:
+- Authorised vulnerability scans
+mitre:
+  tactic:
+    id:
+    - TA0043
+    name:
+    - Reconnaissance
+  technique:
+    id:
+    - T1595
+    name:
+    - Active Scanning
+  subtechnique:
+    id:
+    - T1595.002
+    name:
+    - 'Active Scanning: Vulnerability Scanning'

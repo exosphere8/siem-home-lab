@@ -1,0 +1,32 @@
+metadata:
+  title: Web path traversal attempt
+  author: Midnight Croissant
+  date: '2026-10-07'
+  description: A request that tries to leave the web root.
+  references:
+  - Migrated from Wazuh 4.x rule 100502
+status: experimental
+level: high
+enabled: true
+logsource:
+  product: lab-nginx
+detection:
+  condition: selection
+  selection:
+    url.original|re|i: (\.\./|%2e%2e(%2f|/)|/etc/passwd|/proc/self/)
+tags:
+- attack.initial-access
+- attack.t1190
+falsepositives:
+- Broken clients that send relative paths
+mitre:
+  tactic:
+    id:
+    - TA0001
+    name:
+    - Initial Access
+  technique:
+    id:
+    - T1190
+    name:
+    - Exploit Public-Facing Application

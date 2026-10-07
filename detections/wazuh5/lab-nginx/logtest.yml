@@ -1,0 +1,24 @@
+# Sample events for the Content Manager logtest (scripts/deploy/deploy-wazuh5-content.sh).
+# `expect` lists every rule title of this integration that must match, and only those.
+logtest:
+- location: /var/log/nginx/access.log
+  event: 10.10.10.50 - - [05/Oct/2026:10:20:01 +0000] "GET /.env HTTP/1.1" 404 162 "-" "Mozilla/5.0"
+  expect:
+  - Web probe for a sensitive path
+- location: /var/log/nginx/access.log
+  event: 10.10.10.50 - - [05/Oct/2026:10:20:02 +0000] "GET /download.php?file=../../etc/passwd HTTP/1.1" 404 162 "-" "Mozilla/5.0"
+  expect:
+  - Web path traversal attempt
+- location: /var/log/nginx/access.log
+  event: 10.10.10.50 - - [05/Oct/2026:10:20:03 +0000] "GET /item.php?id=1%20UNION%20SELECT%20name HTTP/1.1" 404 162 "-" "Mozilla/5.0"
+  expect:
+  - Web SQL injection attempt
+- location: /var/log/nginx/access.log
+  event: 10.10.10.50 - - [05/Oct/2026:10:20:04 +0000] "GET / HTTP/1.1" 200 612 "-" "sqlmap/1.8 (https://sqlmap.org)"
+  expect:
+  - Web scanner user agent
+- location: /var/log/nginx/access.log
+  event: 10.10.10.50 - - [05/Oct/2026:10:20:05 +0000] "GET /.git/config HTTP/1.1" 404 162 "-" "gobuster/3.6"
+  expect:
+  - Web probe for a sensitive path
+  - Web scanner user agent

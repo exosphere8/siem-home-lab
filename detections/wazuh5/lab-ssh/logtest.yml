@@ -1,0 +1,16 @@
+# Sample events for the Content Manager logtest (scripts/deploy/deploy-wazuh5-content.sh).
+# `expect` lists every rule title of this integration that must match, and only those.
+logtest:
+- location: /var/log/auth.log
+  event: 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for labadmin from 10.10.10.50 port 40001 ssh2'
+  expect:
+  - SSH failed login
+- location: /var/log/auth.log
+  event: 'Oct  5 10:00:03 ubuntu-endpoint sshd[2301]: Failed password for root from 10.10.10.50 port 40002 ssh2'
+  expect:
+  - SSH failed login
+  - SSH failed login as root
+- location: /var/log/auth.log
+  event: 'Oct  5 10:01:40 ubuntu-endpoint sshd[2340]: Accepted password for labadmin from 10.10.10.50 port 40100 ssh2'
+  expect:
+  - SSH successful login

@@ -1,0 +1,39 @@
+metadata:
+  title: FIM systemd unit added or changed
+  author: Midnight Croissant
+  date: '2026-10-07'
+  description: A systemd service or timer was added or changed (deletions are ignored).
+  references:
+  - Migrated from Wazuh 4.x rule 100304
+status: experimental
+level: high
+enabled: true
+logsource:
+  product: lab-fim
+detection:
+  condition: selection and not deleted
+  selection:
+    file.path|re: ^/(etc|usr/lib|lib)/systemd/system/[^/]+\.(service|timer)$
+  deleted:
+    event.type: deletion
+tags:
+- attack.persistence
+- attack.t1543.002
+falsepositives:
+- Package installs and updates
+mitre:
+  tactic:
+    id:
+    - TA0003
+    name:
+    - Persistence
+  technique:
+    id:
+    - T1543
+    name:
+    - Create or Modify System Process
+  subtechnique:
+    id:
+    - T1543.002
+    name:
+    - 'Create or Modify System Process: Systemd Service'

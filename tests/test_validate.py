@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pytest
 
+from siemlab import wazuh5
 from siemlab.validate import coverage_markdown, load_catalogue
 
 
@@ -15,7 +16,9 @@ def test_repository_detections_have_no_errors(detections):
 
 def test_coverage_document_is_up_to_date(detections):
     doc = detections.parent / "docs" / "detection-coverage.md"
-    expected = coverage_markdown(load_catalogue(detections))
+    cat = load_catalogue(detections)
+    pack = wazuh5.load_pack(detections / "wazuh5", cat.issues)
+    expected = coverage_markdown(cat, pack)
     assert doc.read_text(encoding="utf-8").replace("\r\n", "\n") == expected, (
         "run: siemlab coverage --write docs/detection-coverage.md"
     )

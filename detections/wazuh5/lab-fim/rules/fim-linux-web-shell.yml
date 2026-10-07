@@ -1,0 +1,39 @@
+metadata:
+  title: FIM executable file in the web root
+  author: Midnight Croissant
+  date: '2026-10-07'
+  description: A script file was added or changed under /var/www (deletions are ignored).
+  references:
+  - Migrated from Wazuh 4.x rule 100305
+status: experimental
+level: high
+enabled: true
+logsource:
+  product: lab-fim
+detection:
+  condition: selection and not deleted
+  selection:
+    file.path|re: ^/var/www/.*\.(php|phtml|php\d|jsp|jspx|asp|aspx|cgi|pl|py|sh)$
+  deleted:
+    event.type: deletion
+tags:
+- attack.persistence
+- attack.t1505.003
+falsepositives:
+- Website deployments
+mitre:
+  tactic:
+    id:
+    - TA0003
+    name:
+    - Persistence
+  technique:
+    id:
+    - T1505
+    name:
+    - Server Software Component
+  subtechnique:
+    id:
+    - T1505.003
+    name:
+    - 'Server Software Component: Web Shell'

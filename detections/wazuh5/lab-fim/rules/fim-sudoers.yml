@@ -1,0 +1,37 @@
+metadata:
+  title: FIM sudo configuration changed
+  author: Midnight Croissant
+  date: '2026-10-07'
+  description: A change to /etc/sudoers or /etc/sudoers.d.
+  references:
+  - Migrated from Wazuh 4.x rule 100301
+status: experimental
+level: high
+enabled: true
+logsource:
+  product: lab-fim
+detection:
+  condition: selection
+  selection:
+    file.path|re: ^/etc/sudoers(\.d/.*)?$
+tags:
+- attack.privilege-escalation
+- attack.t1548.003
+falsepositives:
+- Planned sudo policy changes
+mitre:
+  tactic:
+    id:
+    - TA0004
+    name:
+    - Privilege Escalation
+  technique:
+    id:
+    - T1548
+    name:
+    - Abuse Elevation Control Mechanism
+  subtechnique:
+    id:
+    - T1548.003
+    name:
+    - 'Abuse Elevation Control Mechanism: Sudo and Sudo Caching'

@@ -1,0 +1,42 @@
+metadata:
+  title: Windows RDP logon
+  author: Midnight Croissant
+  date: '2026-10-07'
+  description: 'Event 4624 with logon type 10: an interactive logon over Remote Desktop.'
+  references:
+  - Migrated from Wazuh 4.x rule 100203
+status: experimental
+level: low
+enabled: true
+logsource:
+  product: lab-windows-auth
+detection:
+  condition: logon and 1 of rdp_*
+  logon:
+    event.code: '4624'
+  rdp_xml:
+    message|contains: <Data Name='LogonType'>10</Data>
+  rdp_text:
+    message|re: Logon Type:\s+10\b
+tags:
+- attack.lateral-movement
+- attack.t1021.001
+- lab.authentication_success
+falsepositives:
+- Administrators using RDP
+mitre:
+  tactic:
+    id:
+    - TA0008
+    name:
+    - Lateral Movement
+  technique:
+    id:
+    - T1021
+    name:
+    - Remote Services
+  subtechnique:
+    id:
+    - T1021.001
+    name:
+    - 'Remote Services: Remote Desktop Protocol'

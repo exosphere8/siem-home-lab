@@ -1,0 +1,37 @@
+metadata:
+  title: FIM SSH authorized_keys changed
+  author: Midnight Croissant
+  date: '2026-10-07'
+  description: 'A change to an SSH authorized_keys file: a new key is a way back in.'
+  references:
+  - Migrated from Wazuh 4.x rule 100302
+status: experimental
+level: high
+enabled: true
+logsource:
+  product: lab-fim
+detection:
+  condition: selection
+  selection:
+    file.path|re: ^/(root|home/[^/]+)/\.ssh/authorized_keys2?$
+tags:
+- attack.persistence
+- attack.t1098.004
+falsepositives:
+- Users adding their own keys
+mitre:
+  tactic:
+    id:
+    - TA0003
+    name:
+    - Persistence
+  technique:
+    id:
+    - T1098
+    name:
+    - Account Manipulation
+  subtechnique:
+    id:
+    - T1098.004
+    name:
+    - 'Account Manipulation: SSH Authorized Keys'

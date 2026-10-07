@@ -1,0 +1,39 @@
+metadata:
+  title: FIM file added to a Windows Startup folder
+  author: Midnight Croissant
+  date: '2026-10-07'
+  description: A file was added or changed in a per-user or all-users Startup folder.
+  references:
+  - Migrated from Wazuh 4.x rule 100350
+status: experimental
+level: high
+enabled: true
+logsource:
+  product: lab-fim
+detection:
+  condition: selection and not deleted
+  selection:
+    file.path|re|i: ^c:\\(users\\[^\\]+\\appdata\\roaming|programdata)\\microsoft\\windows\\start menu\\programs\\startup\\
+  deleted:
+    event.type: deletion
+tags:
+- attack.persistence
+- attack.t1547.001
+falsepositives:
+- Software that installs a startup shortcut
+mitre:
+  tactic:
+    id:
+    - TA0003
+    name:
+    - Persistence
+  technique:
+    id:
+    - T1547
+    name:
+    - Boot or Logon Autostart Execution
+  subtechnique:
+    id:
+    - T1547.001
+    name:
+    - 'Boot or Logon Autostart Execution: Registry Run Keys / Startup Folder'

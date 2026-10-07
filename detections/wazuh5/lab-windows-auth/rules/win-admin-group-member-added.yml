@@ -1,0 +1,36 @@
+metadata:
+  title: Windows account added to Administrators
+  author: Midnight Croissant
+  date: '2026-10-07'
+  description: Event 4732 for the built-in Administrators group (S-1-5-32-544).
+  references:
+  - Migrated from Wazuh 4.x rule 100205
+status: experimental
+level: high
+enabled: true
+logsource:
+  product: lab-windows-auth
+detection:
+  condition: added and 1 of admins_*
+  added:
+    event.code: '4732'
+  admins_field:
+    group.id: S-1-5-32-544
+  admins_text:
+    message|contains: S-1-5-32-544
+tags:
+- attack.persistence
+- attack.t1098
+falsepositives:
+- Planned administrator changes
+mitre:
+  tactic:
+    id:
+    - TA0003
+    name:
+    - Persistence
+  technique:
+    id:
+    - T1098
+    name:
+    - Account Manipulation

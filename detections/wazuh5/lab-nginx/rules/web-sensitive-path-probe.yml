@@ -1,0 +1,39 @@
+metadata:
+  title: Web probe for a sensitive path
+  author: Midnight Croissant
+  date: '2026-10-07'
+  description: A request for a file or path that should never be public. siemlab counts them per source.
+  references:
+  - Migrated from Wazuh 4.x rule 100501
+  - Migrated from Wazuh 4.x rule 100505
+status: experimental
+level: low
+enabled: true
+logsource:
+  product: lab-nginx
+detection:
+  condition: selection
+  selection:
+    url.original|re|i: /(\.env|\.git/|\.aws/|\.ssh/|wp-login\.php|phpmyadmin|server-status|\.DS_Store)
+tags:
+- attack.reconnaissance
+- attack.t1595.003
+- lab.web_sensitive_probe
+falsepositives:
+- Monitoring that checks server-status
+mitre:
+  tactic:
+    id:
+    - TA0043
+    name:
+    - Reconnaissance
+  technique:
+    id:
+    - T1595
+    name:
+    - Active Scanning
+  subtechnique:
+    id:
+    - T1595.003
+    name:
+    - 'Active Scanning: Wordlist Scanning'

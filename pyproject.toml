@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "siemlab"
-version = "0.1.0"
-description = "Toolkit for the SIEM home lab: Wazuh alert correlation, incident reports, detection validation and synthetic alert generation."
+version = "0.2.0"
+description = "Toolkit for the SIEM home lab: Wazuh 4.x alert and Wazuh 5 finding correlation, incident reports, detection validation, Wazuh 5 content deployment and synthetic data."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
@@ -46,7 +46,7 @@ Homepage = "https://github.com/exosphere8/siem-home-lab"
 where = ["src"]
 
 [tool.setuptools.package-data]
-siemlab = ["py.typed"]
+siemlab = ["py.typed", "data/*.txt"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

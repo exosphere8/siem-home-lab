@@ -1,0 +1,19 @@
+# Sample events for the Content Manager logtest (scripts/deploy/deploy-wazuh5-content.sh).
+# `expect` lists every rule title of this integration that must match, and only those.
+logtest:
+- location: /var/log/auth.log
+  event: 'Oct  5 10:12:01 ubuntu-endpoint useradd[2412]: new user: name=lab-temp, UID=1002, GID=1002, home=/home/lab-temp, shell=/bin/bash, from=/dev/pts/0'
+  expect:
+  - Linux local account or group created
+- location: /var/log/auth.log
+  event: 'Oct  5 10:12:10 ubuntu-endpoint usermod[2419]: add ''lab-temp'' to group ''sudo'''
+  expect:
+  - Linux account added to an administrative group
+- location: /var/log/auth.log
+  event: 'Oct  5 10:12:30 ubuntu-endpoint sudo:  labadmin : TTY=pts/0 ; PWD=/home/labadmin ; USER=root ; COMMAND=/bin/bash'
+  expect:
+  - Linux interactive root shell via sudo
+- location: /var/log/auth.log
+  event: 'Oct  5 10:12:45 ubuntu-endpoint sudo:  labadmin : 3 incorrect password attempts ; TTY=pts/0 ; PWD=/home/labadmin ; USER=root ; COMMAND=/usr/bin/id'
+  expect:
+  - Linux repeated sudo password failures
