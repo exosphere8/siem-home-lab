@@ -5,14 +5,21 @@ then tunes it for a 4 GB VM.
 
 ## 1. Install
 
-Take the current 4.x version from the
-[Wazuh quickstart](https://documentation.wazuh.com/current/quickstart.html) and run its
-installation-assistant command. It has this shape:
+The lab is pinned to the Wazuh version in [`configs/wazuh-version`](../../configs/wazuh-version)
+(4.14.8). Use the 4.14 installation assistant, check that it installed that version, then hold
+the packages so a routine `apt upgrade` can never change the SIEM underneath the rules:
 
 ```bash
-curl -sO https://packages.wazuh.com/<version>/wazuh-install.sh
+curl -sO https://packages.wazuh.com/4.14/wazuh-install.sh
 sudo bash ./wazuh-install.sh -a
+apt list --installed 'wazuh-*' 2>/dev/null          # expect 4.14.8 for all three
+sudo apt-mark hold wazuh-indexer wazuh-manager wazuh-dashboard filebeat
 ```
+
+If the assistant installed a newer 4.14.x, update `configs/wazuh-version` to match, install
+agents of that same version, and re-run the logtest checklists. Wazuh does not support
+downgrades. After this, upgrades are deliberate, never a side effect:
+see [05: Upgrading Wazuh](05-upgrading-wazuh.md).
 
 At the end the assistant prints the `admin` password for the dashboard and leaves
 `wazuh-install-files.tar` next to the script. **Store both in a password manager, then delete

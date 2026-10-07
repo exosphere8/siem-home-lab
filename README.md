@@ -1,7 +1,7 @@
 # SIEM Home Lab: Windows, Linux, Web, and Network Security Monitoring
 
 [![CI](https://github.com/exosphere8/siem-home-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/exosphere8/siem-home-lab/actions/workflows/ci.yml)
-![Wazuh](https://img.shields.io/badge/Wazuh-4.x-3595F9)
+![Wazuh](https://img.shields.io/badge/Wazuh-4.14.8-3595F9)
 ![Detections](https://img.shields.io/badge/detections-33_Wazuh_%C2%B7_11_Sigma_%C2%B7_3_Suricata-5C2D91)
 ![ATT&CK](https://img.shields.io/badge/MITRE_ATT%26CK-18_techniques-C8102E)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -21,10 +21,10 @@ tested Python toolkit, and documents each investigation the way a SOC analyst wo
 | **[Detections](detections/)** | 33 Wazuh rules, 11 Sigma rules (including two Sigma v2 correlation rules) and 3 Suricata signatures, mapped to [18 ATT&CK techniques](docs/detection-coverage.md). |
 | **[`siemlab`](src/siemlab/)** | Python toolkit that correlates Wazuh `alerts.json` into incidents and writes incident reports. It also validates every rule statically (pySigma included) and generates synthetic alerts for the lab's attack scenarios. |
 | **[Automation](scripts/)** | Idempotent Hyper-V PowerShell for the network and VMs (`-WhatIf` everywhere), Windows audit policy, and a rule deployment script that rolls back if Wazuh rejects the configuration. |
-| **[Runbooks](docs/)** | Setup guides, one page per project (logic, validation, investigation playbook, tuning), an incident report template, and an auto-generated coverage matrix. |
+| **[Runbooks](docs/)** | Setup guides, an [upgrade runbook](docs/setup-guides/05-upgrading-wazuh.md), one page per project (logic, validation, investigation playbook, tuning), an incident report template, and an auto-generated coverage matrix. |
 
 CI checks every push: rule validation, an up-to-date coverage matrix, a reproducible synthetic
-sample, a 94-test suite with a 90% coverage gate, `mypy --strict`, ruff, ShellCheck and PSScriptAnalyzer.
+sample, a 100-test suite with a 90% coverage gate, `mypy --strict`, ruff, ShellCheck and PSScriptAnalyzer.
 
 ## Roadmap
 
@@ -109,6 +109,13 @@ Full design notes and trade-offs: [docs/architecture/lab-architecture.md](docs/a
   rules count shared groups. The post-mortem
   [Wazuh only remembers the last rule](https://github.com/exosphere8/postmortems/blob/main/wazuh-only-remembers-the-last-rule.md)
   explains the bug that taught this.
+- **Upgrades are deliberate.** The lab is pinned to one Wazuh version
+  ([`configs/wazuh-version`](configs/wazuh-version)), the packages are held, and the deploy
+  script refuses a manager it was not written for. Wazuh 5 cannot load XML rules at all, so
+  moving to it is a rewrite: the pre-mortem
+  [Upgrading the lab's Wazuh](https://github.com/exosphere8/postmortems/blob/main/premortem-upgrading-wazuh.md)
+  lists what is expected to break, and the
+  [upgrade runbook](docs/setup-guides/05-upgrading-wazuh.md) is the procedure.
 
 ## Lab Environment
 
@@ -128,7 +135,7 @@ and the Wazuh indexer heap is reduced to 1 GB.
 | Area | Tool |
 |---|---|
 | Virtualization | Hyper-V (Windows 11 Pro), PowerShell automation |
-| SIEM, endpoint monitoring, FIM | Wazuh 4.x |
+| SIEM, endpoint monitoring, FIM | Wazuh 4.14.8, pinned in [`configs/wazuh-version`](configs/wazuh-version) |
 | Search and dashboards | Wazuh Dashboard / Wazuh Indexer (OpenSearch-based) |
 | Detection formats | Wazuh rules (XML), Sigma (validated with pySigma), Suricata signatures |
 | Endpoints | Ubuntu Server LTS, Windows 11 |
@@ -154,10 +161,12 @@ siem-home-lab/
 │   ├── hyperv/                  # New-LabNetwork, New-LabVM, Set-LabState
 │   ├── windows/                 # Enable-LabAuditPolicy
 │   └── deploy/                  # deploy-rules.sh (validate + rollback)
-├── configs/sanitized/           # netplan, Wazuh agent/indexer snippets (no secrets)
+├── configs/
+│   ├── wazuh-version            # the one Wazuh version the lab runs (4.14.8)
+│   └── sanitized/               # netplan, Wazuh agent/indexer snippets (no secrets)
 ├── docs/
 │   ├── architecture/            # Lab design and trade-offs
-│   ├── setup-guides/            # 00 host, 01 network+VMs, 02 server, 03-04 agents
+│   ├── setup-guides/            # 00 host, 01 network+VMs, 02 server, 03-04 agents, 05 upgrades
 │   ├── projects/                # 02-08: logic, validation, playbooks, checklists
 │   ├── incident-reports/        # Template + synthetic example
 │   ├── detection-coverage.md    # Generated ATT&CK matrix (CI keeps it current)

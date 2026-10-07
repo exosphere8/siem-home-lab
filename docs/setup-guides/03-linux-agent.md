@@ -9,7 +9,8 @@ sudo chmod 644 /usr/share/keyrings/wazuh.gpg
 echo "deb [signed-by=/usr/share/keyrings/wazuh.gpg] https://packages.wazuh.com/4.x/apt/ stable main" \
   | sudo tee /etc/apt/sources.list.d/wazuh.list
 sudo apt-get update
-sudo WAZUH_MANAGER="10.10.10.10" WAZUH_AGENT_NAME="ubuntu-endpoint" apt-get install -y wazuh-agent
+# Same version as the manager (configs/wazuh-version): the agent must never be newer.
+sudo WAZUH_MANAGER="10.10.10.10" WAZUH_AGENT_NAME="ubuntu-endpoint" apt-get install -y wazuh-agent=4.14.8-1
 sudo systemctl daemon-reload
 sudo systemctl enable --now wazuh-agent
 sudo apt-mark hold wazuh-agent   # the agent must never be newer than the manager

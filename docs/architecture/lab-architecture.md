@@ -72,6 +72,8 @@ Key ports:
 
 **No Kali VM.** Every planned simulation (failed logins, test file changes, scans of lab VMs) can be generated from the host or a small test VM, which saves 2+ GB of RAM.
 
+**One pinned Wazuh version.** The server and agents run exactly the version in `configs/wazuh-version` (4.14.8), with the packages held. Agents must never be newer than the manager, and a minor release can still change how rules match, so every upgrade is a planned step with a checkpoint and a full re-run of the logtest checklists ([05: Upgrading Wazuh](../setup-guides/05-upgrading-wazuh.md)). Wazuh 5 replaces XML rules with Sigma-format rules evaluated in the indexer, so the lab stays on 4.x until 5.x is generally available. Trade-off: security fixes arrive only when the lab is deliberately upgraded.
+
 **Fixed static IPs.** The Hyper-V "Default Switch" changes its address range after reboots, which would break agent configuration. A dedicated internal switch with NAT keeps addresses stable.
 
 ## Resource Plan

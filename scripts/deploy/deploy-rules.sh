@@ -8,15 +8,19 @@
 # /var/ossec/etc/rules/, check the whole configuration with `wazuh-analysisd -t`, and only
 # then restart the manager. If the check fails, the backup is restored and nothing restarts,
 # so a broken rule can never take the manager down.
+#
+# The rules are Wazuh 4.x XML. The script refuses any other major version: Wazuh 5.x cannot
+# load XML rules at all (see docs/setup-guides/05-upgrading-wazuh.md).
 set -euo pipefail
 
 OSSEC_DIR="${OSSEC_DIR:-/var/ossec}"
 RULES_DIR="$OSSEC_DIR/etc/rules"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+PINNED_VERSION="$(tr -d '[:space:]' < "$REPO_ROOT/configs/wazuh-version")"
 DRY_RUN=false
 
 usage() {
-    sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'
 }
 
 for arg in "$@"; do
@@ -44,9 +48,32 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 if [[ ! -x "$OSSEC_DIR/bin/wazuh-analysisd" ]]; then
-    echo "$OSSEC_DIR/bin/wazuh-analysisd not found: is this the Wazuh manager?" >&2
+    if [[ -d /var/wazuh-manager ]]; then
+        echo "this is a Wazuh 5.x manager (/var/wazuh-manager): it cannot load XML rules." >&2
+        echo "see docs/setup-guides/05-upgrading-wazuh.md" >&2
+    else
+        echo "$OSSEC_DIR/bin/wazuh-analysisd not found: is this the Wazuh manager?" >&2
+    fi
     exit 1
 fi
+
+# `wazuh-control info -v` prints the manager version, for example v4.14.8.
+INSTALLED_VERSION="$("$OSSEC_DIR/bin/wazuh-control" info -v 2>/dev/null || true)"
+INSTALLED_VERSION="${INSTALLED_VERSION#v}"
+case "$INSTALLED_VERSION" in
+    "$PINNED_VERSION") ;;
+    4.*)
+        echo "warning: manager is $INSTALLED_VERSION, the lab is tested on $PINNED_VERSION." >&2
+        echo "         re-run the wazuh-logtest checklists after deploying." >&2
+        ;;
+    "")
+        echo "warning: could not read the manager version; continuing." >&2
+        ;;
+    *)
+        echo "manager is $INSTALLED_VERSION: these rules are for Wazuh 4.x only." >&2
+        exit 1
+        ;;
+esac
 
 BACKUP="$(mktemp -d /tmp/wazuh-rules-backup.XXXXXX)"
 cp -a "$RULES_DIR/." "$BACKUP/"

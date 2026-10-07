@@ -4,11 +4,15 @@ Run everything below in an **elevated** PowerShell on `win11-endpoint`.
 
 ## 1. Install the agent
 
-Download the Windows agent MSI that matches the manager's version from the
-[Wazuh packages list](https://documentation.wazuh.com/current/installation-guide/packages-list.html),
-then:
+The agent must be the same version as the manager
+([`configs/wazuh-version`](../../configs/wazuh-version), 4.14.8), never newer. Download that
+MSI from the [Wazuh packages list](https://documentation.wazuh.com/current/installation-guide/packages-list.html)
+and check its signature before installing:
 
 ```powershell
+Invoke-WebRequest -Uri https://packages.wazuh.com/4.x/windows/wazuh-agent-4.14.8-1.msi -OutFile wazuh-agent.msi
+(Get-AuthenticodeSignature .\wazuh-agent.msi).Status      # Valid
+
 # -Wait matters: msiexec returns immediately otherwise, before the service exists.
 Start-Process msiexec.exe -Wait -ArgumentList '/i .\wazuh-agent.msi /q WAZUH_MANAGER=10.10.10.10 WAZUH_AGENT_NAME=win11-endpoint'
 Start-Service -Name WazuhSvc
@@ -49,4 +53,5 @@ In the dashboard (**Threat Hunting**, agent `win11-endpoint`), sign out and back
 a `Windows logon success` event should appear within a minute.
 
 Project 1 is complete when both agents are Active and sending events.
-Next: [Project 2](../projects/02-ssh-bruteforce.md).
+Next: [Project 2](../projects/02-ssh-bruteforce.md). When a new Wazuh version comes out, see
+[05: Upgrading Wazuh](05-upgrading-wazuh.md).
