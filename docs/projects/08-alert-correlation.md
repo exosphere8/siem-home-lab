@@ -56,8 +56,20 @@ The committed sample yields seven incidents. One of them is rendered in
   already part of a pattern do not produce duplicate incidents.
 - **Malformed lines are counted and skipped**, never fatal. One bad line must not hide an attack.
 
+## Wazuh 5
+
+`siemlab correlate` also reads Wazuh 5 findings exported from `wazuh-findings-v5-*` (see
+[05: Upgrading Wazuh](../setup-guides/05-upgrading-wazuh.md#5-correlate-wazuh-5-findings)).
+It merges the findings of one event (`wazuh.event.id`) into one alert, so an event that
+matched two rules is not counted twice. It also runs two correlations only on Wazuh 5 input,
+because 4.x rules did this counting and 5.x rules cannot: `brute_force` (6 failed logins from
+one source within 2 minutes) and `content_discovery` (10 sensitive-path probes within 1
+minute). The synthetic findings correlate to the same incidents as the 4.x sample; a test
+keeps it that way.
+
 ## Validation checklist
 
 - [ ] Run against the live `alerts.json` after Projects 2-6
 - [ ] Compare incidents with what you know happened during the tests; tune thresholds
       (`--window`, `--threshold`) and record the values used here
+- [ ] Wazuh 5: run against exported findings and compare with the 4.x run of the same activity

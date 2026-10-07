@@ -8,8 +8,9 @@
       Linux    wazuh-server + ubuntu-endpoint                 (projects 2, 4, 5, 6, 7)
       Windows  wazuh-server + win11-endpoint                  (projects 1, 3)
       All      wazuh-server + ubuntu-endpoint + win11-endpoint
+      Migration  wazuh-server + wazuh5-server + ubuntu-endpoint  (moving to Wazuh 5)
 
-    Start brings the Wazuh server up first and waits for its integration services heartbeat,
+    Start brings the Wazuh server(s) up first and waits for its integration services heartbeat,
     so agents can reconnect as soon as the endpoints boot. Stop shuts down guests gracefully
     (endpoints first, server last). Use -WhatIf for a dry run.
 
@@ -20,7 +21,7 @@
 [CmdletBinding(SupportsShouldProcess)]
 param(
     [Parameter(Mandatory)]
-    [ValidateSet('Linux', 'Windows', 'All')]
+    [ValidateSet('Linux', 'Windows', 'All', 'Migration')]
     [string] $LabProfile,
 
     [Parameter(Mandatory)]
@@ -35,11 +36,13 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $endpoints = @{
-    Linux   = @('ubuntu-endpoint')
-    Windows = @('win11-endpoint')
-    All     = @('ubuntu-endpoint', 'win11-endpoint')
+    Linux     = @('ubuntu-endpoint')
+    Windows   = @('win11-endpoint')
+    All       = @('ubuntu-endpoint', 'win11-endpoint')
+    Migration = @('ubuntu-endpoint')
 }[$LabProfile]
-$server = 'wazuh-server'
+$servers = @('wazuh-server')
+if ($LabProfile -eq 'Migration') { $servers += 'wazuh5-server' }
 
 function Wait-Heartbeat {
     param([string] $Name, [int] $Timeout)
@@ -53,17 +56,17 @@ function Wait-Heartbeat {
 }
 
 if ($State -eq 'Running') {
-    foreach ($name in @($server) + $endpoints) {
+    foreach ($name in $servers + $endpoints) {
         $vm = Get-VM -Name $name
         if ($vm.State -eq 'Running') { Write-Verbose "$name already running."; continue }
         if ($PSCmdlet.ShouldProcess($name, 'Start VM')) {
             Start-VM -VM $vm
-            if ($name -eq $server) { Wait-Heartbeat -Name $name -Timeout $TimeoutSeconds }
+            if ($servers -contains $name) { Wait-Heartbeat -Name $name -Timeout $TimeoutSeconds }
         }
     }
 }
 else {
-    foreach ($name in $endpoints + @($server)) {
+    foreach ($name in $endpoints + $servers) {
         $vm = Get-VM -Name $name
         if ($vm.State -eq 'Off') { Write-Verbose "$name already off."; continue }
         if ($PSCmdlet.ShouldProcess($name, 'Shut down VM (graceful)')) {
@@ -72,4 +75,4 @@ else {
     }
 }
 
-Get-VM -Name (@($server) + $endpoints) | Select-Object Name, State, CPUUsage, MemoryAssigned, Uptime
+Get-VM -Name ($servers + $endpoints) | Select-Object Name, State, CPUUsage, MemoryAssigned, Uptime

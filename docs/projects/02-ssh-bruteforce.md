@@ -80,6 +80,15 @@ built-in rule wins instead of 100100, note its ID and adjust the parent in the r
 - Hardening that removes the risk entirely: `PasswordAuthentication no` and
   `PermitRootLogin no` in `sshd_config`. Keep the rules as a tripwire for misconfiguration.
 
+## Wazuh 5
+
+Integration [`lab-ssh`](../../detections/wazuh5/lab-ssh/). 100100 and 100103 became *SSH failed login* and
+*SSH failed login as root*; a failed root login now produces both findings, and `siemlab`
+merges them back into one event. Wazuh 5 rules cannot count, so 100101 (brute force: 6
+failures from one source within 2 minutes) and 100102 (a success after it) are now
+`siemlab correlate`'s `brute_force` and `credential_compromise`. *SSH successful login*
+(informational) is new: without it, `siemlab` would never see the login that ends a brute force.
+
 ## Validation checklist
 
 - [ ] Rules deployed with `deploy-rules.sh` (validation passed)
@@ -87,3 +96,5 @@ built-in rule wins instead of 100100, note its ID and adjust the parent in the r
 - [ ] logtest: six root-only failures trigger 100101
 - [ ] Actual trigger count for 100101 recorded: ____
 - [ ] Screenshot of the alerts in the dashboard saved to `docs/screenshots/`
+- [ ] Wazuh 5: the `lab-ssh` logtest cases pass (`siemlab wazuh5 deploy`)
+- [ ] Wazuh 5: six root-only failures, exported and correlated, give one `brute_force` incident

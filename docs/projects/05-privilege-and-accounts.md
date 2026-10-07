@@ -46,8 +46,16 @@ sudo userdel -r lab-temp            # clean up
 2. Check who ran the command (`srcuser`) and how they logged in (Project 2 alerts).
 3. Remove the account from the group (`sudo gpasswd -d <user> sudo`) and lock it until explained.
 
+## Wazuh 5
+
+Integration [`lab-linux-accounts`](../../detections/wazuh5/lab-linux-accounts/). All four rules port
+directly, matching the program in `process.name` and the text in `message`. 100401 no longer
+needs to stand outside the rule tree: Wazuh 5 has no tree, so no built-in rule can claim the
+event first.
+
 ## Validation checklist
 
 - [ ] logtest results recorded for all three lines
 - [ ] Live test produced 100400, 100401, 100402
 - [ ] Test account removed
+- [ ] Wazuh 5: the `lab-linux-accounts` logtest cases pass

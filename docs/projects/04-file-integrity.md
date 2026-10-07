@@ -73,9 +73,19 @@ Expected alerts per step:
 3. A new key in `authorized_keys`, or a cron job nobody planned: remove it, then investigate
    how the attacker got write access, because they still have it.
 
+## Wazuh 5
+
+Integration [`lab-fim`](../../detections/wazuh5/lab-fim/): the same paths, matched on `file.path`. Where 4.x
+excluded deletions by rule ID (553), the Wazuh 5 rules exclude `event.type: deletion`. FIM
+events come from the agent, not a log file, so they have no logtest samples; and 4.x agents
+do not fully support FIM against a 5.x manager. Validate this project only after the agents
+are upgraded.
+
 ## Validation checklist
 
 - [ ] 100303, 100302 and 100305 observed on Linux
 - [ ] 100350 observed on Windows (Wazuh reports Windows paths in lower case)
 - [ ] If `<field name="file">` does not match on this Wazuh version, note the field name
       shown in the alert JSON here: ____
+- [ ] Wazuh 5: each watched path produced its finding from a 5.x agent
+- [ ] Wazuh 5: deleting a watched file did not trigger the add/change-only rules

@@ -1,0 +1,15 @@
+# /etc/netplan/50-lab.yaml on wazuh5-server (only while migrating to Wazuh 5)
+# Static address on the SIEM-Lab switch; the host (10.10.10.1) is the gateway and NAT.
+# Apply with: sudo chmod 600 /etc/netplan/50-lab.yaml && sudo netplan try
+network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: false
+      addresses:
+        - 10.10.10.11/24
+      routes:
+        - to: default
+          via: 10.10.10.1
+      nameservers:
+        addresses: [1.1.1.1, 9.9.9.9]

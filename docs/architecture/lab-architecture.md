@@ -50,6 +50,7 @@ Design constraints:
 |---|---|---|
 | Host gateway | 10.10.10.1 | Hyper-V internal switch adapter, NAT gateway for the lab |
 | wazuh-server | 10.10.10.10 | Static IP; agents are configured to report here |
+| wazuh5-server | 10.10.10.11 | Only while migrating to Wazuh 5, next to wazuh-server |
 | ubuntu-endpoint | 10.10.10.20 | Static IP |
 | win11-endpoint | 10.10.10.30 | Static IP |
 | Reserved | 10.10.10.50 | Optional lightweight test VM |
@@ -72,7 +73,9 @@ Key ports:
 
 **No Kali VM.** Every planned simulation (failed logins, test file changes, scans of lab VMs) can be generated from the host or a small test VM, which saves 2+ GB of RAM.
 
-**One pinned Wazuh version.** The server and agents run exactly the version in `configs/wazuh-version` (4.14.8), with the packages held. Agents must never be newer than the manager, and a minor release can still change how rules match, so every upgrade is a planned step with a checkpoint and a full re-run of the logtest checklists ([05: Upgrading Wazuh](../setup-guides/05-upgrading-wazuh.md)). Wazuh 5 replaces XML rules with Sigma-format rules evaluated in the indexer, so the lab stays on 4.x until 5.x is generally available. Trade-off: security fixes arrive only when the lab is deliberately upgraded.
+**One pinned Wazuh version.** The server and agents run exactly the version in `configs/wazuh-version` (4.14.8), with the packages held. Agents must never be newer than the manager, and a minor release can still change how rules match, so every upgrade is a planned step with a checkpoint and a full re-run of the logtest checklists ([05: Upgrading Wazuh](../setup-guides/05-upgrading-wazuh.md)). Trade-off: security fixes arrive only when the lab is deliberately upgraded.
+
+**Wazuh 5 ported ahead of time, run later.** Wazuh 5 replaces XML rules with Sigma-format rules that the indexer evaluates, and cannot be upgraded in place. The detections are already rewritten in `detections/wazuh5`, validated against the Wazuh Common Schema in CI, and deployable with `siemlab wazuh5 deploy`; the lab moves once 5.0 is generally available, on a second server VM so 4.x keeps running until 5.x is proven. Counting rules (brute force, content discovery) have no Wazuh 5 equivalent, so they run in `siemlab`. Trade-off: those detections run in batches over exported findings rather than in real time.
 
 **Fixed static IPs.** The Hyper-V "Default Switch" changes its address range after reboots, which would break agent configuration. A dedicated internal switch with NAT keeps addresses stable.
 

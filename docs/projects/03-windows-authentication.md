@@ -72,6 +72,16 @@ attackers do it.
 - Exclude service accounts with known-bad stored credentials by `targetUserName` in a child rule
   at level 0, rather than raising thresholds for everyone.
 
+## Wazuh 5
+
+Integration [`lab-windows-auth`](../../detections/wazuh5/lab-windows-auth/). Rules match the event ID in
+`event.code`. 100201 (password guessing) is now `siemlab correlate`'s `brute_force`, which
+uses one threshold for SSH and Windows: 6 failures within 2 minutes, where 100201 needed 8.
+*Windows logon from a network address* (informational) is new, so `siemlab` can see a guess
+that worked. The RDP rule reads the logon type from the event text, and the Administrators
+rule accepts the group SID either as `group.id` or in the text: confirm which one the
+Windows decoder fills with a live event.
+
 ## Validation checklist
 
 - [ ] Audit policy applied; `auditpol /get` shows Success/Failure as expected
@@ -79,3 +89,5 @@ attackers do it.
 - [ ] 100201 threshold confirmed: ____ failures
 - [ ] 100206 observed (run last)
 - [ ] Screenshots saved to `docs/screenshots/`
+- [ ] Wazuh 5: a failed logon, an RDP logon, a new account, an Administrators change and a cleared log each produced their finding
+- [ ] Wazuh 5: the RDP logon type and the group SID are read from: ____

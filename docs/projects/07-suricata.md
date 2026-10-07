@@ -47,8 +47,17 @@ Suricata alerts are JSON. Paste this compact event into `wazuh-logtest`:
 Expected: 100602. The lab rules are children of both 86601 and the generic severity-1 rule
 100600, so they refine it instead of being hidden by it.
 
+## Wazuh 5
+
+Integration [`lab-suricata`](../../detections/wazuh5/lab-suricata/). The rules expect the Suricata decoder to
+put the signature ID in `rule.id` and the severity in `event.severity`, the usual convention
+for Suricata in the Elastic Common Schema that the WCS follows. The logtest case shows
+whether that holds. In Wazuh 5 the severity-1 rule and the signature rules no longer compete:
+an alert from a lab signature produces both findings.
+
 ## Validation checklist
 
 - [ ] `suricata -T` passes with the lab signatures
 - [ ] logtest result recorded: ____
 - [ ] eve.json alerts visible in the dashboard
+- [ ] Wazuh 5: the `lab-suricata` logtest case passes, or the fields it shows are recorded: ____

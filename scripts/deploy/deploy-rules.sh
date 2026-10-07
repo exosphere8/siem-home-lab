@@ -10,7 +10,7 @@
 # so a broken rule can never take the manager down.
 #
 # The rules are Wazuh 4.x XML. The script refuses any other major version: Wazuh 5.x cannot
-# load XML rules at all (see docs/setup-guides/05-upgrading-wazuh.md).
+# load XML rules at all. Deploy detections/wazuh5 with `siemlab wazuh5 deploy` instead.
 set -euo pipefail
 
 OSSEC_DIR="${OSSEC_DIR:-/var/ossec}"
@@ -50,7 +50,7 @@ fi
 if [[ ! -x "$OSSEC_DIR/bin/wazuh-analysisd" ]]; then
     if [[ -d /var/wazuh-manager ]]; then
         echo "this is a Wazuh 5.x manager (/var/wazuh-manager): it cannot load XML rules." >&2
-        echo "see docs/setup-guides/05-upgrading-wazuh.md" >&2
+        echo "deploy detections/wazuh5 with: siemlab wazuh5 deploy" >&2
     else
         echo "$OSSEC_DIR/bin/wazuh-analysisd not found: is this the Wazuh manager?" >&2
     fi
@@ -71,6 +71,7 @@ case "$INSTALLED_VERSION" in
         ;;
     *)
         echo "manager is $INSTALLED_VERSION: these rules are for Wazuh 4.x only." >&2
+        echo "for Wazuh 5, deploy detections/wazuh5 with: siemlab wazuh5 deploy" >&2
         exit 1
         ;;
 esac

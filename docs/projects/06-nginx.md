@@ -48,7 +48,16 @@ counts the shared group `web_sensitive_probe` instead of one rule ID.
 3. Check Project 4 for new script files under `/var/www` after the exploitation attempts.
    `siemlab correlate` links the two automatically ([Project 8](08-alert-correlation.md)).
 
+## Wazuh 5
+
+Integration [`lab-nginx`](../../detections/wazuh5/lab-nginx/), matching `url.original` and
+`user_agent.original`. 100505 is gone: it only existed because Wazuh 4 reports the deepest
+rule, so a scanner probing `/.env` hid the probe. Wazuh 5 writes a finding for every matching
+rule, and the logtest case for a scanner probing `/.git/config` expects both. 100504 (10
+probes in a minute) is now `siemlab correlate`'s `content_discovery`.
+
 ## Validation checklist
 
 - [ ] logtest results recorded for all four lines
 - [ ] Note which built-in web rules (31103-31106) compete, if any: ____
+- [ ] Wazuh 5: the `lab-nginx` logtest cases pass, including the two-finding scanner case

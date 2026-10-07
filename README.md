@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/exosphere8/siem-home-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/exosphere8/siem-home-lab/actions/workflows/ci.yml)
 ![Wazuh](https://img.shields.io/badge/Wazuh-4.14.8-3595F9)
+![Wazuh 5](https://img.shields.io/badge/Wazuh_5-content_pack_ready-3595F9)
 ![Detections](https://img.shields.io/badge/detections-33_Wazuh_%C2%B7_11_Sigma_%C2%B7_3_Suricata-5C2D91)
 ![ATT&CK](https://img.shields.io/badge/MITRE_ATT%26CK-18_techniques-C8102E)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -12,19 +13,21 @@ tested Python toolkit, and documents each investigation the way a SOC analyst wo
 
 > **Status:** Project 0 is complete. The detection content, tooling and runbooks for Projects
 > 1-8 are written and validated in CI. Deploying the lab (Project 1) is next, after which each
-> detection is validated live and its checklist ticked off.
+> detection is validated live and its checklist ticked off. The lab runs Wazuh 4.14.8, and
+> every detection is also ported to Wazuh 5, ready for when 5.0 is generally available.
 
 ## What's in this repository
 
 | | |
 |---|---|
 | **[Detections](detections/)** | 33 Wazuh rules, 11 Sigma rules (including two Sigma v2 correlation rules) and 3 Suricata signatures, mapped to [18 ATT&CK techniques](docs/detection-coverage.md). |
-| **[`siemlab`](src/siemlab/)** | Python toolkit that correlates Wazuh `alerts.json` into incidents and writes incident reports. It also validates every rule statically (pySigma included) and generates synthetic alerts for the lab's attack scenarios. |
+| **[Wazuh 5 content pack](detections/wazuh5/)** | The same detections rewritten for Wazuh 5: 30 Sigma-format rules in 6 integrations, checked against the Wazuh Common Schema, with logtest cases and a [rule-by-rule migration map](docs/detection-coverage.md#wazuh-5-migration). |
+| **[`siemlab`](src/siemlab/)** | Python toolkit that correlates Wazuh 4.x alerts or Wazuh 5 findings into incidents and writes incident reports. It also validates every rule statically (pySigma included), deploys the Wazuh 5 pack through the Content Manager API, and generates synthetic data for the lab's attack scenarios. |
 | **[Automation](scripts/)** | Idempotent Hyper-V PowerShell for the network and VMs (`-WhatIf` everywhere), Windows audit policy, and a rule deployment script that rolls back if Wazuh rejects the configuration. |
 | **[Runbooks](docs/)** | Setup guides, an [upgrade runbook](docs/setup-guides/05-upgrading-wazuh.md), one page per project (logic, validation, investigation playbook, tuning), an incident report template, and an auto-generated coverage matrix. |
 
-CI checks every push: rule validation, an up-to-date coverage matrix, a reproducible synthetic
-sample, a 100-test suite with a 90% coverage gate, `mypy --strict`, ruff, ShellCheck and PSScriptAnalyzer.
+CI checks every push: rule validation (Wazuh 5 pack included), an up-to-date coverage matrix,
+reproducible synthetic samples, a 166-test suite with a 90% coverage gate, `mypy --strict`, ruff, ShellCheck and PSScriptAnalyzer.
 
 ## Roadmap
 
@@ -40,6 +43,7 @@ sample, a 100-test suite with a 90% coverage gate, `mypy --strict`, ruff, ShellC
 | 7 | [Suricata network IDS integration](docs/projects/07-suricata.md) (optional) | Rules written and CI-validated; lab validation pending |
 | 8 | [Alert correlation with Python](docs/projects/08-alert-correlation.md) | Built and tested on synthetic data; live run pending |
 | 9 | Final portfolio packaging | In progress |
+| 10 | [Migration to Wazuh 5](docs/setup-guides/05-upgrading-wazuh.md#migrating-to-wazuh-5) | Content pack and tooling written and CI-validated; waiting for Wazuh 5.0 to be generally available |
 
 ## Try it without the lab
 
@@ -51,6 +55,9 @@ pip install -e ".[dev]"
 siemlab validate                                        # 33 Wazuh + 11 Sigma + 3 Suricata rules
 siemlab correlate sample-data/sanitized/alerts-synthetic.json
 siemlab correlate sample-data/sanitized/alerts-synthetic.json --report-dir reports/
+
+siemlab correlate sample-data/sanitized/findings-wazuh5-synthetic.json   # the same, as Wazuh 5 findings
+siemlab wazuh5 deploy --dry-run                         # what the Wazuh 5 pack would create
 ```
 
 Output (38 alerts analysed, 7 incidents):
@@ -67,6 +74,8 @@ Output (38 alerts analysed, 7 incidents):
 
 The sample is synthetic (`siemlab generate`), built from the rule metadata in `detections/`.
 See an [example incident report](docs/incident-reports/EXAMPLE-synthetic-INC-20261005-002.md).
+The Wazuh 5 sample (`siemlab generate --format wazuh5`) holds the findings the Wazuh 5 pack
+would write for the same events, and correlates to the same seven incidents. CI checks that.
 
 ## Architecture
 
@@ -112,9 +121,11 @@ Full design notes and trade-offs: [docs/architecture/lab-architecture.md](docs/a
 - **Upgrades are deliberate.** The lab is pinned to one Wazuh version
   ([`configs/wazuh-version`](configs/wazuh-version)), the packages are held, and the deploy
   script refuses a manager it was not written for. Wazuh 5 cannot load XML rules at all, so
-  moving to it is a rewrite: the pre-mortem
+  moving to it was a rewrite: [`detections/wazuh5`](detections/wazuh5/) holds every rule in
+  the new format, and the counting rules Wazuh 5 cannot express moved into `siemlab`. The
+  pre-mortem
   [Upgrading the lab's Wazuh](https://github.com/exosphere8/postmortems/blob/main/premortem-upgrading-wazuh.md)
-  lists what is expected to break, and the
+  lists what was expected to break and what the port confirmed, and the
   [upgrade runbook](docs/setup-guides/05-upgrading-wazuh.md) is the procedure.
 
 ## Lab Environment
@@ -135,7 +146,7 @@ and the Wazuh indexer heap is reduced to 1 GB.
 | Area | Tool |
 |---|---|
 | Virtualization | Hyper-V (Windows 11 Pro), PowerShell automation |
-| SIEM, endpoint monitoring, FIM | Wazuh 4.14.8, pinned in [`configs/wazuh-version`](configs/wazuh-version) |
+| SIEM, endpoint monitoring, FIM | Wazuh 4.14.8, pinned in [`configs/wazuh-version`](configs/wazuh-version); Wazuh 5 content pack ready |
 | Search and dashboards | Wazuh Dashboard / Wazuh Indexer (OpenSearch-based) |
 | Detection formats | Wazuh rules (XML), Sigma (validated with pySigma), Suricata signatures |
 | Endpoints | Ubuntu Server LTS, Windows 11 |
@@ -154,8 +165,10 @@ siem-home-lab/
 │   ├── windows/                 #   100200 authentication, 100350 FIM
 │   ├── web/                     #   100500 Nginx
 │   ├── network/                 #   100600 Suricata + suricata-local.rules
-│   └── sigma/                   #   portable Sigma rules (incl. v2 correlations)
-├── src/siemlab/                 # Python toolkit: alerts, correlate, report, validate, generate
+│   ├── sigma/                   #   portable Sigma rules (incl. v2 correlations)
+│   └── wazuh5/                  #   the Wazuh 5 content pack + 4.x-to-5.x migration map
+├── src/siemlab/                 # Python toolkit: alerts, correlate, report, validate, generate,
+│                                #   wazuh5 (pack validation), deploy5 (Content Manager API)
 ├── tests/                       # pytest suite for siemlab and the detection content
 ├── scripts/
 │   ├── hyperv/                  # New-LabNetwork, New-LabVM, Set-LabState
@@ -172,7 +185,7 @@ siem-home-lab/
 │   ├── detection-coverage.md    # Generated ATT&CK matrix (CI keeps it current)
 │   ├── screenshots/             # Evidence for each project
 │   └── troubleshooting.md       # Problems hit and how they were fixed
-├── sample-data/sanitized/       # Synthetic alerts only
+├── sample-data/sanitized/       # Synthetic 4.x alerts and Wazuh 5 findings only
 └── notes/learning-journal.md
 ```
 
