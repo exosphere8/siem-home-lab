@@ -22,12 +22,15 @@ tested Python toolkit, and documents each investigation the way a SOC analyst wo
 |---|---|
 | **[Detections](detections/)** | 33 Wazuh rules, 11 Sigma rules (including two Sigma v2 correlation rules) and 3 Suricata signatures, mapped to [18 ATT&CK techniques](docs/detection-coverage.md). |
 | **[Wazuh 5 content pack](detections/wazuh5/)** | The same detections rewritten for Wazuh 5: 30 Sigma-format rules in 6 integrations, checked against the Wazuh Common Schema, with logtest cases and a [rule-by-rule migration map](docs/detection-coverage.md#wazuh-5-migration). |
-| **[`siemlab`](src/siemlab/)** | Python toolkit that correlates Wazuh 4.x alerts or Wazuh 5 findings into incidents and writes incident reports. It also validates every rule statically (pySigma included), deploys the Wazuh 5 pack through the Content Manager API, and generates synthetic data for the lab's attack scenarios. |
+| **[`siemlab`](src/siemlab/)** | An installable Python package (`pip install siemlab`) that carries the whole lab kit. It correlates Wazuh 4.x alerts or Wazuh 5 findings into incidents and writes incident reports, validates every rule statically (pySigma included), deploys the Wazuh 5 pack and its real-time counting monitors, exports findings, and generates synthetic data for the lab's attack scenarios. |
 | **[Automation](scripts/)** | Idempotent Hyper-V PowerShell for the network and VMs (`-WhatIf` everywhere), Windows audit policy, and a rule deployment script that rolls back if Wazuh rejects the configuration. |
 | **[Runbooks](docs/)** | Setup guides, an [upgrade runbook](docs/setup-guides/05-upgrading-wazuh.md), one page per project (logic, validation, investigation playbook, tuning), an incident report template, and an auto-generated coverage matrix. |
 
-CI checks every push: rule validation (Wazuh 5 pack included), an up-to-date coverage matrix,
-reproducible synthetic samples, a 166-test suite with a 90% coverage gate, `mypy --strict`, ruff, ShellCheck and PSScriptAnalyzer.
+CI checks every push: rule validation (Wazuh 5 pack included, against the official schema),
+an up-to-date coverage matrix, reproducible synthetic samples, a 205-test suite with a 90%
+coverage gate, `mypy --strict`, ruff, ShellCheck, PSScriptAnalyzer, a secret scan of the full
+history, and a package build that is installed in a clean environment and run outside the
+repository.
 
 ## Roadmap
 
@@ -42,21 +45,22 @@ reproducible synthetic samples, a 166-test suite with a 90% coverage gate, `mypy
 | 6 | [Web-server (Nginx) security monitoring](docs/projects/06-nginx.md) | Rules written and CI-validated; lab validation pending |
 | 7 | [Suricata network IDS integration](docs/projects/07-suricata.md) (optional) | Rules written and CI-validated; lab validation pending |
 | 8 | [Alert correlation with Python](docs/projects/08-alert-correlation.md) | Built and tested on synthetic data; live run pending |
-| 9 | Final portfolio packaging | In progress |
+| 9 | Packaging | `siemlab` builds as an installable package that carries the lab kit ([changelog](CHANGELOG.md), [releasing](RELEASING.md)) |
 | 10 | [Migration to Wazuh 5](docs/setup-guides/05-upgrading-wazuh.md#migrating-to-wazuh-5) | Content pack and tooling written and CI-validated; waiting for Wazuh 5.0 to be generally available |
 
 ## Try it without the lab
 
+Install the package (from a release wheel, or from PyPI once it is published) and run it
+anywhere: it carries the detections, scripts, runbooks and synthetic samples.
+
 ```bash
-git clone https://github.com/exosphere8/siem-home-lab.git && cd siem-home-lab
-python -m venv .venv && source .venv/bin/activate      # Windows: .venv\Scripts\activate
-pip install -e ".[dev]"
+pip install siemlab-0.3.0-py3-none-any.whl              # or, from a clone: pip install -e ".[dev]"
 
-siemlab validate                                        # 33 Wazuh + 11 Sigma + 3 Suricata rules
-siemlab correlate sample-data/sanitized/alerts-synthetic.json
-siemlab correlate sample-data/sanitized/alerts-synthetic.json --report-dir reports/
-
-siemlab correlate sample-data/sanitized/findings-wazuh5-synthetic.json   # the same, as Wazuh 5 findings
+siemlab demo                                            # correlate the bundled synthetic alerts
+siemlab demo --wazuh5                                   # the same attack, as Wazuh 5 findings
+siemlab init my-lab && cd my-lab                        # your own copy of the lab kit
+siemlab wazuh5 fetch-schema                             # Wazuh Common Schema field list, once
+siemlab validate --strict                               # 33 Wazuh + 11 Sigma + 3 Suricata + 30 Wazuh 5 rules
 siemlab wazuh5 deploy --dry-run                         # what the Wazuh 5 pack would create
 ```
 
@@ -167,8 +171,9 @@ siem-home-lab/
 │   ├── network/                 #   100600 Suricata + suricata-local.rules
 │   ├── sigma/                   #   portable Sigma rules (incl. v2 correlations)
 │   └── wazuh5/                  #   the Wazuh 5 content pack + 4.x-to-5.x migration map
-├── src/siemlab/                 # Python toolkit: alerts, correlate, report, validate, generate,
-│                                #   wazuh5 (pack validation), deploy5 (Content Manager API)
+├── src/siemlab/                 # Python package: alerts, correlate, report, validate, generate,
+│                                #   wazuh5 (pack validation), deploy5 (deploy + monitors),
+│                                #   export5 (findings), schema (WCS download), kit (lab kit)
 ├── tests/                       # pytest suite for siemlab and the detection content
 ├── scripts/
 │   ├── hyperv/                  # New-LabNetwork, New-LabVM, Set-LabState
@@ -201,4 +206,7 @@ data in this repository is synthetic or sanitized. See [SECURITY.md](SECURITY.md
 
 ## License
 
-Released under the MIT License. See [LICENSE](LICENSE).
+Released under the MIT License, © 2026 Midnight Croissant. See [LICENSE](LICENSE) and
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), which includes the MITRE ATT&CK®
+attribution. Wazuh® is a registered trademark of Wazuh, Inc.; this project is independent and
+not affiliated with or endorsed by Wazuh, Inc.

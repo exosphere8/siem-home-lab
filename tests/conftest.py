@@ -10,6 +10,17 @@ from siemlab.alerts import Alert
 
 REPO = Path(__file__).resolve().parents[1]
 DETECTIONS = REPO / "detections"
+WCS_SUBSET = Path(__file__).resolve().parent / "data" / "wcs-fields-subset.txt"
+
+
+@pytest.fixture(autouse=True)
+def _hermetic_environment(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """No test reads the user's cache, the network or a real indexer password."""
+    monkeypatch.setenv("SIEMLAB_WCS_FIELDS", str(WCS_SUBSET))
+    monkeypatch.setenv("SIEMLAB_CACHE_DIR", str(tmp_path / "siemlab-cache"))
+    monkeypatch.delenv("WAZUH_INDEXER_PASSWORD", raising=False)
+
+
 T0 = datetime(2026, 10, 5, 12, 0, 0, tzinfo=UTC)
 
 

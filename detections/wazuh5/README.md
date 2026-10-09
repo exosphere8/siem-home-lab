@@ -19,6 +19,7 @@ run on a Wazuh 5 indexer yet, so all are `status: experimental`.
 | `<integration>/rules/*.yml` | One rule resource per file, exactly as the Content Manager API takes it (no `id`: the server assigns one). |
 | `<integration>/logtest.yml` | Sample events and the rule titles each one must match, and only those. |
 | `migration.yml` | Where every Wazuh 4.x rule went. CI fails if one is missing. |
+| `monitors/*.json` | Alerting monitors that count findings in real time: brute force and content discovery. |
 
 | Integration | Category | Rules | Project |
 |---|---|---|---|
@@ -66,10 +67,13 @@ the field or the text, for example `1 of admins_*` in the Administrators rule.
 ## Use it
 
 ```bash
+siemlab wazuh5 fetch-schema                  # once: the WCS field list, checked by SHA-256
 siemlab validate --strict                    # also validates this pack
 siemlab wazuh5 deploy --dry-run              # what would be created
 siemlab wazuh5 deploy --ca root-ca.pem       # draft -> test, then every logtest case
 siemlab wazuh5 deploy --ca root-ca.pem --promote-custom   # and to production if all pass
+siemlab wazuh5 monitors --ca root-ca.pem     # create or update the counting monitors
+siemlab wazuh5 export --ca root-ca.pem       # findings for `siemlab correlate`
 siemlab wazuh5 bundle --out build/wazuh5     # the API request bodies, for inspection
 ```
 
@@ -78,8 +82,10 @@ The full procedure, including detectors and exporting findings, is in
 
 ## Updating the schema
 
-`src/siemlab/data/wcs-events-5.0.0.txt` is the WCS event field list from
-`wcs/stateless/events/main/docs/fields.csv` in
-[wazuh-indexer-plugins](https://github.com/wazuh/wazuh-indexer-plugins) at tag `5.0.0`. For a
-newer release, add a file built from that release's CSV (field name, plus ` noindex` when
-`Indexed` is `false`), point `siemlab.wazuh5.wcs_fields` at it, and run `siemlab validate`.
+The WCS field list is `wcs/stateless/events/main/docs/fields.csv` in
+[wazuh-indexer-plugins](https://github.com/wazuh/wazuh-indexer-plugins), which is licensed
+under the AGPL-3.0, so siemlab does not ship it. `siemlab wazuh5 fetch-schema` downloads it
+from tag `5.0.0`, checks its SHA-256, and caches it (`%LOCALAPPDATA%\siemlab` on Windows,
+`~/.cache/siemlab` elsewhere; `SIEMLAB_CACHE_DIR` overrides). For a newer release, update
+`WCS_TAG` and `WCS_SHA256` in `src/siemlab/schema.py`, or run
+`siemlab wazuh5 fetch-schema --from <url-or-file> --no-verify` after reviewing the file.

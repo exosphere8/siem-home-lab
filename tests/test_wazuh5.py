@@ -39,6 +39,7 @@ def test_counting_rules_moved_to_siemlab(detections):
 
 def test_wcs_field_list_marks_unindexed_fields():
     fields = wazuh5.wcs_fields()
+    assert fields is not None
     assert fields["source.ip"] is True
     assert fields["event.original"] is False
     assert "win.eventdata.ipAddress" not in fields

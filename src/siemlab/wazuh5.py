@@ -9,20 +9,24 @@ match becomes a *finding* in ``wazuh-findings-v5-*``. The pack layout is::
       <integration>/integration.yml the integration resource (its title names the integration)
       <integration>/rules/*.yml     one rule resource per file, exactly as the API takes it
       <integration>/logtest.yml     sample events and the rule titles each must match
+      monitors/*.json               alerting monitors that count findings in real time
 
 Checks (errors fail CI, warnings are reported):
 
   * integrations: a valid title and author, and one of the eight categories Wazuh accepts;
   * rules: required fields and closed value sets, ``logsource.product`` equal to the
     integration title, unique titles, no ``id`` (the server assigns it);
-  * detection fields exist in the WCS (``data/wcs-events-5.0.0.txt``), modifiers are ones
-    Wazuh supports, regular expressions compile, and the condition names real selections;
-    a field the WCS stores without indexing is a warning, because a rule on it may never match;
+  * detection fields exist in the WCS (see :mod:`siemlab.schema`; without the downloaded
+    list this check is skipped with a warning), modifiers are ones Wazuh supports, regular
+    expressions compile, and the condition names real selections; a field the WCS stores
+    without indexing is a warning, because a rule on it may never match;
   * MITRE blocks have parallel ``id``/``name`` arrays whose names and tactics agree with
     :mod:`siemlab.mitre`;
   * every Wazuh 4.x rule appears in ``migration.yml``, pointing at a rule that names it in
     its references, or at the siemlab correlation that replaces it;
-  * logtest expectations name rules of the same integration.
+  * logtest expectations name rules of the same integration;
+  * monitors are bucket-level monitors over ``wazuh-findings-v5-*`` whose tag filters name
+    tags that pack rules carry.
 """
 
 from __future__ import annotations
@@ -34,13 +38,12 @@ import json
 import re
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
-from importlib import resources
 from pathlib import Path
 from typing import Any
 
 import yaml
 
-from . import mitre
+from . import mitre, schema
 from .validate import Catalogue, Issue
 
 CATEGORIES = frozenset(
@@ -86,17 +89,14 @@ _TITLE = re.compile(r'^[^\s\\/:*?"<>|]+$')
 _TAG = re.compile(r"^[a-z0-9_-]+\.[a-z0-9_.-]+$")
 _MIGRATED = re.compile(r"^Migrated from Wazuh 4\.x rule (\d+)$")
 _CONDITION_WORDS = frozenset({"and", "or", "not", "of", "all", "them"})
+MONITORS_DIR = "monitors"
+FINDINGS_INDEX = "wazuh-findings-v5-"
+_SCHEDULE_UNITS = frozenset({"MINUTES", "HOURS", "DAYS"})
 
 
-def wcs_fields() -> dict[str, bool]:
-    """WCS event field -> whether it is indexed (searchable)."""
-    text = resources.files("siemlab").joinpath("data/wcs-events-5.0.0.txt").read_text("utf-8")
-    fields: dict[str, bool] = {}
-    for line in text.splitlines():
-        if line and not line.startswith("#"):
-            name, _, flag = line.partition(" ")
-            fields[name] = flag != "noindex"
-    return fields
+def wcs_fields() -> dict[str, bool] | None:
+    """WCS event field -> whether it is indexed, or None before ``fetch-schema``."""
+    return schema.load()
 
 
 @dataclass(frozen=True)
@@ -127,12 +127,21 @@ class LogtestCase:
     expect: tuple[str, ...]
 
 
+@dataclass(frozen=True)
+class Monitor:
+    name: str
+    file: str  # relative to the pack, e.g. monitors/brute-force.json
+    tags: tuple[str, ...]  # wazuh.rule.tags values its query filters on
+    doc: dict[str, Any]
+
+
 @dataclass
 class Pack:
     integrations: list[Integration] = field(default_factory=list)
     rules: list[Rule] = field(default_factory=list)
     migration: dict[int, dict[str, str]] = field(default_factory=dict)
     logtests: list[LogtestCase] = field(default_factory=list)
+    monitors: list[Monitor] = field(default_factory=list)
 
     def rule_by_file(self) -> dict[str, Rule]:
         return {r.file: r for r in self.rules}
@@ -163,7 +172,18 @@ def load_pack(pack_dir: Path, issues: list[Issue]) -> Pack | None:
     root = pack_dir.parent.parent  # repository root: locations read detections/wazuh5/...
     pack = Pack()
     fields = wcs_fields()
+    if fields is None:
+        issues.append(
+            Issue(
+                "warning",
+                _rel(pack_dir, root),
+                "WCS field list not downloaded, so detection fields were not checked: run "
+                "`siemlab wazuh5 fetch-schema`",
+            )
+        )
     for directory in sorted(p for p in pack_dir.iterdir() if p.is_dir()):
+        if directory.name == MONITORS_DIR:
+            continue
         integration = _load_integration(directory, root, issues)
         if integration is None:
             continue
@@ -175,8 +195,13 @@ def load_pack(pack_dir: Path, issues: list[Issue]) -> Pack | None:
         logtest = directory / "logtest.yml"
         if logtest.exists():
             pack.logtests.extend(_load_logtests(logtest, root, integration, issues))
+    for path in sorted((pack_dir / MONITORS_DIR).glob("*.json")):
+        monitor = _load_monitor(path, pack_dir, root, issues)
+        if monitor is not None:
+            pack.monitors.append(monitor)
     _check_unique(pack, issues)
     _check_logtests(pack, issues)
+    _check_monitor_tags(pack, issues)
     migration = pack_dir / "migration.yml"
     if migration.exists():
         doc = _yaml(migration, root, issues)
@@ -227,7 +252,7 @@ def _load_rule(
     pack_dir: Path,
     root: Path,
     integration: Integration,
-    fields: Mapping[str, bool],
+    fields: Mapping[str, bool] | None,
     issues: list[Issue],
 ) -> Rule | None:
     doc = _yaml(path, root, issues)
@@ -277,7 +302,7 @@ def _load_rule(
 
 
 def _check_detection(
-    detection: Any, fields: Mapping[str, bool], where: str, issues: list[Issue]
+    detection: Any, fields: Mapping[str, bool] | None, where: str, issues: list[Issue]
 ) -> None:
     if not isinstance(detection, dict) or not isinstance(detection.get("condition"), str):
         issues.append(Issue("error", where, "detection needs a 'condition' string"))
@@ -309,10 +334,12 @@ def _check_detection(
 
 
 def _check_field(
-    key: str, value: Any, fields: Mapping[str, bool], where: str, issues: list[Issue]
+    key: str, value: Any, fields: Mapping[str, bool] | None, where: str, issues: list[Issue]
 ) -> None:
     name, *modifiers = key.split("|")
-    if name not in fields:
+    if fields is None:
+        pass  # schema not downloaded: reported once by load_pack
+    elif name not in fields:
         issues.append(Issue("error", where, f"{name!r} is not a WCS field"))
     elif not fields[name]:
         issues.append(
@@ -412,6 +439,96 @@ def _load_logtests(
             )
         )
     return out
+
+
+def _walk_tag_filters(node: Any) -> Iterable[str]:
+    """Values of term/terms filters on ``wazuh.rule.tags`` anywhere in a query."""
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if key in ("term", "terms") and isinstance(value, dict) and "wazuh.rule.tags" in value:
+                tag = value["wazuh.rule.tags"]
+                if isinstance(tag, dict):
+                    tag = tag.get("value")
+                yield from (str(t) for t in (tag if isinstance(tag, list) else [tag]))
+            else:
+                yield from _walk_tag_filters(value)
+    elif isinstance(node, list):
+        for item in node:
+            yield from _walk_tag_filters(item)
+
+
+def _load_monitor(path: Path, pack_dir: Path, root: Path, issues: list[Issue]) -> Monitor | None:
+    rel = _rel(path, root)
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+    except ValueError as exc:
+        issues.append(Issue("error", rel, f"invalid JSON: {exc}"))
+        return None
+    if not isinstance(doc, dict):
+        issues.append(Issue("error", rel, "monitor must be a JSON object"))
+        return None
+    name = str(doc.get("name", "")).strip()
+    where = f"{rel} '{name or '?'}'"
+    problems = []
+    if not name:
+        problems.append("missing name")
+    if doc.get("type") != "monitor" or doc.get("monitor_type") != "bucket_level_monitor":
+        problems.append("must be type 'monitor' with monitor_type 'bucket_level_monitor'")
+    if "id" in doc:
+        problems.append("remove 'id': the server assigns it")
+    if not isinstance(doc.get("enabled"), bool):
+        problems.append("enabled must be true or false")
+    period = _mapping(_mapping(doc.get("schedule")).get("period"))
+    interval = period.get("interval")
+    if not isinstance(interval, int) or interval < 1 or period.get("unit") not in _SCHEDULE_UNITS:
+        problems.append("schedule.period needs a positive interval and MINUTES, HOURS or DAYS")
+    inputs = doc.get("inputs")
+    search = _mapping(inputs[0].get("search")) if isinstance(inputs, list) and inputs else {}
+    indices = search.get("indices")
+    if not isinstance(inputs, list) or len(inputs) != 1 or not isinstance(indices, list):
+        problems.append("needs exactly one search input with a list of indices")
+    elif not indices or not all(str(i).startswith(FINDINGS_INDEX) for i in indices):
+        problems.append(f"indices must be {FINDINGS_INDEX}* (Wazuh 5 findings)")
+    query = _mapping(search.get("query"))
+    composite = _mapping(_mapping(query.get("aggregations")).get("composite_agg"))
+    if "composite" not in composite:
+        problems.append("query needs a 'composite_agg' composite aggregation")
+    triggers = doc.get("triggers")
+    if not isinstance(triggers, list) or not triggers:
+        problems.append("needs at least one trigger")
+    else:
+        for trigger in triggers:
+            bucket = _mapping(_mapping(trigger).get("bucket_level_trigger"))
+            condition = _mapping(bucket.get("condition"))
+            if (
+                not bucket.get("name")
+                or str(bucket.get("severity")) not in {"1", "2", "3", "4", "5"}
+                or condition.get("parent_bucket_path") != "composite_agg"
+                or not isinstance(_mapping(condition.get("script")).get("source"), str)
+            ):
+                problems.append(
+                    "each trigger needs a bucket_level_trigger with a name, severity 1-5, "
+                    "parent_bucket_path 'composite_agg' and a script"
+                )
+                break
+    for problem in problems:
+        issues.append(Issue("error", where, problem))
+    tags = tuple(dict.fromkeys(_walk_tag_filters(query)))
+    if not tags:
+        issues.append(Issue("error", where, "query must filter on wazuh.rule.tags"))
+    return Monitor(name, path.relative_to(pack_dir).as_posix(), tags, doc)
+
+
+def _check_monitor_tags(pack: Pack, issues: list[Issue]) -> None:
+    known = {t for r in pack.rules for t in r.tags}
+    seen: set[str] = set()
+    for m in pack.monitors:
+        if m.name in seen:
+            issues.append(Issue("error", m.file, f"monitor name {m.name!r} is used twice"))
+        seen.add(m.name)
+        for tag in m.tags:
+            if tag not in known:
+                issues.append(Issue("error", m.file, f"no pack rule carries the tag {tag!r}"))
 
 
 def _check_unique(pack: Pack, issues: list[Issue]) -> None:

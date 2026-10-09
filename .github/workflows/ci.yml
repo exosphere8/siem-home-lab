@@ -23,6 +23,8 @@ jobs:
           python-version: "3.13"
           cache: pip
       - run: pip install -e ".[dev]"
+      - name: Wazuh Common Schema field list (pinned SHA-256)
+        run: siemlab wazuh5 fetch-schema
       - name: Wazuh XML, Sigma (pySigma), Suricata rules and the Wazuh 5 pack
         run: siemlab validate --strict
       - name: Coverage matrix is up to date
@@ -71,3 +73,47 @@ jobs:
           $results = Invoke-ScriptAnalyzer -Path scripts -Recurse -Severity Warning, Error
           $results | Format-Table -AutoSize RuleName, Severity, ScriptName, Line, Message
           if ($results) { throw "PSScriptAnalyzer reported $($results.Count) issue(s)" }
+
+  package:
+    name: Build and smoke-test the package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - run: pip install build twine
+      - name: Build sdist and wheel
+        run: python -m build
+      - name: Check package metadata
+        run: twine check --strict dist/*
+      - name: Install the wheel in a clean environment and run it outside the repository
+        run: |
+          python -m venv /tmp/clean
+          /tmp/clean/bin/pip install dist/*.whl
+          cd "$(mktemp -d)"
+          /tmp/clean/bin/siemlab --version
+          /tmp/clean/bin/siemlab demo
+          /tmp/clean/bin/siemlab demo --wazuh5 --format json > /dev/null
+          /tmp/clean/bin/siemlab wazuh5 fetch-schema
+          /tmp/clean/bin/siemlab init lab
+          cd lab
+          /tmp/clean/bin/siemlab validate --strict
+          /tmp/clean/bin/siemlab wazuh5 deploy --dry-run
+          /tmp/clean/bin/siemlab wazuh5 monitors --dry-run
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  secrets:
+    name: Secret scan (full history)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

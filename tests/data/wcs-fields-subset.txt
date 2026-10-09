@@ -1,0 +1,18 @@
+# Test fixture: the Wazuh Common Schema fields the content pack and the tests use.
+# The full list is downloaded by `siemlab wazuh5 fetch-schema` and never committed.
+event.category
+event.code
+event.original noindex
+event.outcome
+event.severity
+event.type
+file.path
+group.id
+message
+process.name
+rule.id
+source.ip
+url.original
+user.name
+user_agent.original
+wazuh.protocol.location

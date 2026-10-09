@@ -57,8 +57,9 @@ dist/
 .coverage
 htmlcov/
 
-# Incident reports generated locally from live data stay local until sanitised
+# Incident reports and findings exported from a live indexer stay local until sanitised
 reports/
+exports/
 
 # ---------------------------------------------------------------
 # OS and editor files

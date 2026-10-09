@@ -1,0 +1,10 @@
+# The sdist carries the lab kit so that a wheel built from it (setup.py) can bundle it.
+graft detections
+graft scripts
+graft configs
+graft docs
+graft sample-data
+graft tests
+include README.md LICENSE THIRD_PARTY_NOTICES.md CHANGELOG.md RELEASING.md SECURITY.md
+include setup.py
+global-exclude __pycache__ *.py[cod] .gitkeep

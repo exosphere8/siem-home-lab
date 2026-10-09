@@ -162,6 +162,7 @@ On `wazuh5-server`, from a clone of this repository:
 ```bash
 sudo apt-get install -y python3-venv
 python3 -m venv .venv && . .venv/bin/activate && pip install .
+siemlab wazuh5 fetch-schema                              # the field list rules are checked against
 siemlab validate --strict
 siemlab wazuh5 deploy --dry-run
 siemlab wazuh5 deploy --ca /path/to/root-ca.pem          # prompts for the indexer password
@@ -203,6 +204,20 @@ integration, all its rules, and the events index where its events land (find it 
 **Discover** by searching for a sample event; it is `wazuh-events-v5-<category>`). A short
 interval, such as 1 minute, keeps the delay between an event and its finding small.
 
+Then install the two counting monitors. Wazuh 5 rules match one event at a time, so these
+alerting monitors do what 4.x frequency rules did, on the indexer and in real time: one
+alert when a source makes 6 failed logins within 2 minutes, or 10 sensitive-path probes
+within 1 minute. They count distinct events (`wazuh.event.id`), so an event that matched two
+rules still counts once.
+
+```bash
+siemlab wazuh5 monitors --ca /path/to/root-ca.pem
+```
+
+Running it again updates the monitors instead of adding copies. Their alerts appear under
+**Alerting > Alerts**; add a notification channel to a monitor's trigger if you want them
+sent somewhere.
+
 ### 4. Move the agents
 
 Follow the [agent migration](https://github.com/wazuh/wazuh-documentation/blob/5.0.0/source/migration-to-5x/wazuh-agents.rst)
@@ -217,14 +232,12 @@ Findings live in the indexer, not in a file. Export them as JSON lines and give 
 `siemlab`, which recognises the format:
 
 ```bash
-curl -s --cacert /path/to/root-ca.pem -u admin \
-  "https://127.0.0.1:9200/wazuh-findings-v5-*/_search?size=10000&sort=@timestamp:asc" \
-  | python3 -c 'import json, sys; [print(json.dumps(h["_source"])) for h in json.load(sys.stdin)["hits"]["hits"]]' \
-  > findings.json
-siemlab correlate findings.json --report-dir reports/
+siemlab wazuh5 export --ca /path/to/root-ca.pem --since 24h   # -> exports/findings.json
+siemlab correlate exports/findings.json --report-dir reports/
 ```
 
-A single search returns at most 10,000 findings; for more, narrow it with a time range.
+The export pages through every finding (there is no 10,000-hit limit). It is live security
+data: `exports/` and `reports/` are ignored by Git, so keep them there.
 
 On Wazuh 5 input, `siemlab correlate` also runs the counting that 4.x rules did: a brute force
 (6 failed logins from one source within 2 minutes) and content discovery (10 sensitive-path

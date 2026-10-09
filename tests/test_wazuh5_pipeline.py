@@ -4,18 +4,18 @@ from __future__ import annotations
 
 import dataclasses
 import json
-import threading
 from collections.abc import Iterator
 from datetime import timedelta
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
 import pytest
 
+import fake_indexer
 from conftest import REPO, failure, make_alert
 from siemlab import alerts, correlate, deploy5, wazuh5
 from siemlab.cli import main
+from siemlab.indexer import IndexerClient, parse_json
 from siemlab.validate import load_catalogue
 
 SAMPLE4 = REPO / "sample-data" / "sanitized" / "alerts-synthetic.json"
@@ -226,70 +226,22 @@ def test_commands_needing_the_pack_fail_without_it(tmp_path):
     assert main(["--detections", str(detections), "wazuh5", "bundle", "--out", "x"]) == 1
 
 
-# -- deployment against a fake Content Manager API -------------------------------------------
-
-
-class FakeContentManager(BaseHTTPRequestHandler):
-    """Just enough of the Content Manager API, with the state on the server class."""
-
-    def log_message(self, *args: Any) -> None:  # keep test output quiet
-        pass
-
-    def _reply(self, code: int, body: Any) -> None:
-        raw = json.dumps(body).encode()
-        self.send_response(code)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(raw)))
-        self.end_headers()
-        self.wfile.write(raw)
-
-    def do_GET(self) -> None:
-        state = self.server.state  # type: ignore[attr-defined]
-        state["calls"].append(("GET", self.path))
-        self._reply(200, {"changes": {"integrations": [], "rules": [], "policy": []}})
-
-    def do_POST(self) -> None:
-        state = self.server.state  # type: ignore[attr-defined]
-        body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
-        state["calls"].append(("POST", self.path))
-        assert self.headers["Authorization"].startswith("Basic ")
-        path = self.path.removeprefix(deploy5.API)
-        if path == "/integrations":
-            title = body["resource"]["metadata"]["title"]
-            if title in state["existing"]:
-                return self._reply(409, {"message": "exists", "status": 409})
-            return self._reply(201, {"message": f"id-{title}", "status": 201})
-        if path == "/rules":
-            return self._reply(201, {"message": "rule-id", "status": 201})
-        if path == "/promote":
-            state["promoted"].append(body["space"])
-            return self._reply(200, {"message": "Promotion completed successfully"})
-        if path == "/logtest":
-            return self._reply(200, {"status": 200, "message": state["logtest"](body)})
-        return self._reply(404, {"message": "no such endpoint"})
+# -- deployment against a fake indexer -------------------------------------------------------
 
 
 @pytest.fixture
 def fake_api() -> Iterator[tuple[str, dict[str, Any]]]:
-    server = ThreadingHTTPServer(("127.0.0.1", 0), FakeContentManager)
     expected = {c.event: c.expect for c in _pack().logtests}
-    server.state = {  # type: ignore[attr-defined]
-        "calls": [],
-        "promoted": [],
-        "existing": set(),
-        "logtest": lambda body: {
+
+    def logtest(body: dict[str, Any]) -> dict[str, Any]:
+        matches = [{"rule": {"title": t}} for t in expected[body["event"]]]
+        return {
             "normalization": {"output": {}},
-            "detection": {
-                "status": "success",
-                "matches": [{"rule": {"title": t}} for t in expected[body["event"]]],
-            },
-        },
-    }
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    yield f"http://127.0.0.1:{server.server_address[1]}", server.state  # type: ignore[attr-defined]
-    server.shutdown()
-    server.server_close()
+            "detection": {"status": "success", "matches": matches},
+        }
+
+    with fake_indexer.running(logtest=logtest) as server:
+        yield server
 
 
 def _pack() -> wazuh5.Pack:
@@ -298,8 +250,8 @@ def _pack() -> wazuh5.Pack:
     return pack
 
 
-def _cm(url: str) -> deploy5.ContentManager:
-    return deploy5.ContentManager(url, "admin", "secret")
+def _cm(url: str) -> IndexerClient:
+    return IndexerClient(url, "admin", "test-only")
 
 
 def test_deploy_creates_promotes_and_tests(fake_api):
@@ -345,7 +297,7 @@ def test_existing_integration_stops_the_deploy(fake_api):
 
 def test_cli_deploy_end_to_end(fake_api, monkeypatch, capsys):
     url, state = fake_api
-    monkeypatch.setenv("WAZUH_INDEXER_PASSWORD", "secret")
+    monkeypatch.setenv("WAZUH_INDEXER_PASSWORD", "test-only")
     assert main(["wazuh5", "deploy", "--url", url]) == 0
     assert "passed" in capsys.readouterr().out
     state["logtest"] = lambda body: {"detection": {"status": "success", "matches": []}}
@@ -360,15 +312,21 @@ def test_client_reports_http_errors_and_non_json(fake_api):
     code, body = _cm(url).request("POST", "/nowhere", {})
     assert code == 404
     assert body == {"message": "no such endpoint"}
-    assert deploy5._json(b"not json") == "not json"
-    assert deploy5._json(b"") is None
+    assert parse_json(b"not json") == "not json"
+    assert parse_json(b"") is None
+
+
+def test_client_never_shows_credentials():
+    client = IndexerClient("https://x:9200", "admin", "do-not-print")
+    assert "do-not-print" not in repr(client)
+    assert "admin" not in repr(client)
 
 
 def test_tls_options():
-    insecure = deploy5.ContentManager("https://x:9200", "a", "b", insecure=True)
+    insecure = IndexerClient("https://x:9200", "a", "b", insecure=True)
     assert insecure._context is not None
     assert not insecure._context.check_hostname
-    verified = deploy5.ContentManager("https://x:9200", "a", "b")
+    verified = IndexerClient("https://x:9200", "a", "b")
     assert verified._context is not None
     assert verified._context.check_hostname
 

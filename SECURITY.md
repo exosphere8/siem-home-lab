@@ -21,3 +21,8 @@ Detection gaps and false positives are not security issues: open a normal issue.
   `client.keys`), raw logs, packet captures and VM images.
 - File-integrity monitoring never records content diffs for `/etc/shadow`, so password hashes
   cannot reach alert data.
+- `siemlab` takes the indexer password only from `WAZUH_INDEXER_PASSWORD` or a prompt, never
+  from command-line arguments, and never writes or logs it. TLS is verified unless you pass
+  `--insecure`, which is meant for a throwaway lab VM only.
+- Findings exported from a live indexer go to `exports/`, which Git ignores.
+- CI scans the full Git history for secrets on every push.

@@ -1,3 +1,3 @@
-"""SIEM home lab toolkit: alert correlation, incident reports, detection validation, Wazuh 5."""
+"""siemlab: detection engineering toolkit for Wazuh 4 and Wazuh 5."""
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
