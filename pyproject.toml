@@ -8,8 +8,8 @@ dynamic = ["version"]
 description = "Detection engineering toolkit for Wazuh 4 and 5: validate rules, deploy a Wazuh 5 content pack, correlate alerts into incidents, and build a home SOC lab."
 readme = { file = "docs/package-readme.md", content-type = "text/markdown" }
 requires-python = ">=3.11"
-license = "MIT"
-license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]
+license = "PolyForm-Noncommercial-1.0.0 OR LicenseRef-siemlab-Commercial"
+license-files = ["LICENSE", "COMMERCIAL-LICENSE.md", "THIRD_PARTY_NOTICES.md"]
 authors = [{ name = "Midnight Croissant", email = "101312106+exosphere8@users.noreply.github.com" }]
 maintainers = [
     { name = "Midnight Croissant", email = "101312106+exosphere8@users.noreply.github.com" },

@@ -5,7 +5,7 @@
 ![Wazuh 5](https://img.shields.io/badge/Wazuh_5-content_pack_ready-3595F9)
 ![Detections](https://img.shields.io/badge/detections-35_Wazuh_%C2%B7_11_Sigma_%C2%B7_3_Suricata-5C2D91)
 ![ATT&CK](https://img.shields.io/badge/MITRE_ATT%26CK-18_techniques-C8102E)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![License: PolyForm Noncommercial](https://img.shields.io/badge/license-PolyForm_Noncommercial-blue.svg)](LICENSE)
 
 A self-built Security Operations Center (SOC) lab. It collects logs from Linux and Windows
 endpoints, detects suspicious behavior with Wazuh, correlates alerts into incidents with a
@@ -54,7 +54,7 @@ Install the package (from a release wheel, or from PyPI once it is published) an
 anywhere: it carries the detections, scripts, runbooks and synthetic samples.
 
 ```bash
-pip install siemlab-0.4.0-py3-none-any.whl              # or, from a clone: pip install -e ".[dev]"
+pip install siemlab-0.5.0-py3-none-any.whl              # or, from a clone: pip install -e ".[dev]"
 
 siemlab demo                                            # correlate the bundled synthetic alerts
 siemlab demo --wazuh5                                   # the same attack, as Wazuh 5 findings
@@ -206,7 +206,9 @@ data in this repository is synthetic or sanitized. See [SECURITY.md](SECURITY.md
 
 ## License
 
-Released under the MIT License, © 2026 Midnight Croissant. See [LICENSE](LICENSE) and
+Free for noncommercial use under the PolyForm Noncommercial License 1.0.0; commercial use
+needs a [commercial license](COMMERCIAL-LICENSE.md). © 2026 Midnight Croissant. Versions up to
+0.4.0 remain MIT. See [LICENSE](LICENSE) and
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), which includes the MITRE ATT&CK®
 attribution. Wazuh® is a registered trademark of Wazuh, Inc.; this project is independent and
 not affiliated with or endorsed by Wazuh, Inc.

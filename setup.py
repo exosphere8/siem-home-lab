@@ -13,7 +13,13 @@ from setuptools.command.build_py import build_py
 
 ROOT = Path(__file__).resolve().parent
 KIT_DIRS = ("detections", "scripts", "configs", "docs", "sample-data")
-KIT_FILES = ("README.md", "LICENSE", "THIRD_PARTY_NOTICES.md", "CHANGELOG.md")
+KIT_FILES = (
+    "README.md",
+    "LICENSE",
+    "COMMERCIAL-LICENSE.md",
+    "THIRD_PARTY_NOTICES.md",
+    "CHANGELOG.md",
+)
 
 
 class BuildPyWithKit(build_py):

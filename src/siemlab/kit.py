@@ -13,7 +13,13 @@ from pathlib import Path
 
 # Copied into the package at build time, and by `siemlab init`.
 KIT_DIRS = ("detections", "scripts", "configs", "docs", "sample-data")
-KIT_FILES = ("README.md", "LICENSE", "THIRD_PARTY_NOTICES.md", "CHANGELOG.md")
+KIT_FILES = (
+    "README.md",
+    "LICENSE",
+    "COMMERCIAL-LICENSE.md",
+    "THIRD_PARTY_NOTICES.md",
+    "CHANGELOG.md",
+)
 
 
 def root() -> Path | None:

@@ -44,8 +44,8 @@ anywhere. One-time setup:
 
 Until step 3 is done, the PyPI job is skipped and releases only go to GitHub.
 
-## Before selling
+## Selling
 
-The code is MIT-licensed today, which allows anyone who receives a copy to redistribute it.
-If you want to sell licenses rather than support or services, decide on the license before
-the first paid release, and keep THIRD_PARTY_NOTICES.md with every copy you distribute.
+From 0.5.0, siemlab is free for noncommercial use (PolyForm Noncommercial 1.0.0) and sold
+under a commercial license for anything else (COMMERCIAL-LICENSE.md). Versions up to 0.4.0
+stay MIT. Keep LICENSE and THIRD_PARTY_NOTICES.md with every copy you distribute.

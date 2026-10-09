@@ -1,7 +1,9 @@
 # Third-party notices
 
-siemlab and its lab kit are © 2026 Midnight Croissant and released under the MIT License
-(see [LICENSE](LICENSE)). They rely on, or refer to, the following third-party work.
+siemlab and its lab kit are © 2026 Midnight Croissant and dual-licensed: PolyForm
+Noncommercial 1.0.0 or a commercial license (see [LICENSE](LICENSE) and
+[COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md)). They rely on, or refer to, the following
+third-party work.
 
 ## Bundled in the package
 

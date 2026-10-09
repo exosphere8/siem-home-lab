@@ -23,7 +23,7 @@ written reports, and ships the runbooks and automation to build the lab it was m
 ## Install
 
 ```bash
-pip install siemlab              # or: pip install siemlab-0.4.0-py3-none-any.whl
+pip install siemlab              # or: pip install siemlab-0.5.0-py3-none-any.whl
 pip install "siemlab[sigma]"     # also validate Sigma rules with pySigma
 ```
 
@@ -69,7 +69,9 @@ siemlab correlate exports/findings.json --report-dir reports/
 
 ## License and notices
 
-MIT License, © 2026 Midnight Croissant. Third-party notices, including the MITRE ATT&CK®
+Free for noncommercial use (PolyForm Noncommercial 1.0.0); commercial use needs a
+[commercial license](https://github.com/exosphere8/siem-home-lab/blob/main/COMMERCIAL-LICENSE.md).
+© 2026 Midnight Croissant. Third-party notices, including the MITRE ATT&CK®
 attribution, are in
 [THIRD_PARTY_NOTICES.md](https://github.com/exosphere8/siem-home-lab/blob/main/THIRD_PARTY_NOTICES.md).
 Wazuh® is a registered trademark of Wazuh, Inc.; siemlab is an independent project, not

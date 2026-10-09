@@ -5,6 +5,13 @@ All notable changes to siemlab and its lab kit. The format follows
 [Semantic Versioning](https://semver.org/). Until 1.0.0, a minor version may change the
 command line or the content pack layout.
 
+## [0.5.0] - 2026-10-10
+
+### Changed
+- **License:** free for noncommercial use under the PolyForm Noncommercial License 1.0.0,
+  with a commercial license for commercial use (COMMERCIAL-LICENSE.md). Versions up to and
+  including 0.4.0 remain under the MIT License.
+
 ## [0.4.0] - 2026-10-09
 
 ### Added
@@ -86,6 +93,7 @@ These were found by the new real-manager tests; none had shown up in static vali
 - Hyper-V automation, Windows audit policy script, rule deployment with rollback.
 - Setup guides, project runbooks, incident report template, security policy and CI.
 
+[0.5.0]: https://github.com/exosphere8/siem-home-lab/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/exosphere8/siem-home-lab/compare/614741b...v0.4.0
 [0.3.0]: https://github.com/exosphere8/siem-home-lab/compare/b9ad025...614741b
 [0.2.0]: https://github.com/exosphere8/siem-home-lab/compare/08304ea...b9ad025
