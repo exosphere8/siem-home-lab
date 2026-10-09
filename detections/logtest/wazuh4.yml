@@ -61,6 +61,20 @@ cases:
   expect:
     rule: 100102
     level: 13
+- name: Six root-only failures through the analysis queue (production path)
+  location: /var/log/auth.log
+  log_format: syslog
+  mode: queue
+  events:
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for root from 10.10.10.54 port 41000 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for root from 10.10.10.54 port 41001 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for root from 10.10.10.54 port 41002 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for root from 10.10.10.54 port 41003 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for root from 10.10.10.54 port 41004 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for root from 10.10.10.54 port 41005 ssh2'
+  expect:
+    rule: 100101
+    level: 10
 - name: New local account
   location: /var/log/auth.log
   log_format: syslog
@@ -167,6 +181,24 @@ cases:
   - 10.10.10.53 - - [05/Oct/2026:10:20:01 +0000] "GET /.env.bak HTTP/1.1" 404 162 "-" "Mozilla/5.0"
   expect:
     rule: 100504
+    level: 10
+- name: Ten scanner probes are scanner content discovery
+  location: /var/log/nginx/access.log
+  log_format: syslog
+  mode: queue
+  events:
+  - 10.10.10.55 - - [05/Oct/2026:10:20:01 +0000] "GET /.env HTTP/1.1" 404 162 "-" "gobuster/3.6"
+  - 10.10.10.55 - - [05/Oct/2026:10:20:01 +0000] "GET /.git/config HTTP/1.1" 404 162 "-" "gobuster/3.6"
+  - 10.10.10.55 - - [05/Oct/2026:10:20:01 +0000] "GET /.aws/credentials HTTP/1.1" 404 162 "-" "gobuster/3.6"
+  - 10.10.10.55 - - [05/Oct/2026:10:20:01 +0000] "GET /wp-login.php HTTP/1.1" 404 162 "-" "gobuster/3.6"
+  - 10.10.10.55 - - [05/Oct/2026:10:20:01 +0000] "GET /phpmyadmin/ HTTP/1.1" 404 162 "-" "gobuster/3.6"
+  - 10.10.10.55 - - [05/Oct/2026:10:20:01 +0000] "GET /server-status HTTP/1.1" 404 162 "-" "gobuster/3.6"
+  - 10.10.10.55 - - [05/Oct/2026:10:20:01 +0000] "GET /.DS_Store HTTP/1.1" 404 162 "-" "gobuster/3.6"
+  - 10.10.10.55 - - [05/Oct/2026:10:20:01 +0000] "GET /.ssh/id_rsa HTTP/1.1" 404 162 "-" "gobuster/3.6"
+  - 10.10.10.55 - - [05/Oct/2026:10:20:01 +0000] "GET /.git/HEAD HTTP/1.1" 404 162 "-" "gobuster/3.6"
+  - 10.10.10.55 - - [05/Oct/2026:10:20:01 +0000] "GET /.env.bak HTTP/1.1" 404 162 "-" "gobuster/3.6"
+  expect:
+    rule: 100506
     level: 10
 - name: Suricata SSH connection burst
   location: /var/log/suricata/eve.json

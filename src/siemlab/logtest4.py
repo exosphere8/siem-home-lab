@@ -68,6 +68,8 @@ class Result:
     def passed(self) -> bool:
         if self.error is not None or self.rule != self.case.rule:
             return False
+        if self.case.rule in self.trail[:-1]:
+            return False  # a counting rule fired before the last event: its count is wrong
         return self.case.level is None or self.level == self.case.level
 
 

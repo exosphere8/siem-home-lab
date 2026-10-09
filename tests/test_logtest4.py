@@ -28,11 +28,15 @@ def fake(rule_for_last: dict, calls: list):
 
 
 def test_run_case_passes_and_fails():
-    case = logtest4.Case("x", "/l", "syslog", ("a", "b"), "100100", 5)
+    case = logtest4.Case("x", "/l", "syslog", ("a",), "100100", 5)
     calls: list = []
     ok = logtest4.run_case(fake({"id": "100100", "level": 5}, calls), case)
     assert ok.passed
-    assert calls == ["log_processing", "log_processing", "remove_session"]
+    assert calls == ["log_processing", "remove_session"]
+    twice = logtest4.Case("x", "/l", "syslog", ("a", "b"), "100100", 5)
+    early = logtest4.run_case(fake({"id": "100100", "level": 5}, []), twice)
+    assert not early.passed  # fired before the last event
+    assert "rules per event: 100100 100100" in logtest4.describe(early)
     bad = logtest4.run_case(fake({"id": "5716", "level": 5}, []), case)
     assert not bad.passed
     assert "FAIL" in logtest4.describe(bad)

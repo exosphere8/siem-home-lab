@@ -65,6 +65,9 @@ rules:
     to: lab-nginx/rules/web-sensitive-path-probe.yml
     note: 'Existed only because Wazuh 4 reports the deepest rule: a scanner probing /.env ended as 100500 and never reached 100501. Wazuh 5 writes a finding for every matching rule, so ''Web scanner user
       agent'' and ''Web probe for a sensitive path'' both fire.'
+  100506:
+    to: siemlab:content_discovery
+    note: Counts scanner probes per source (10 in 1 minute). Wazuh 5 rules cannot count.
   100600:
     to: lab-suricata/rules/suricata-high-severity.yml
   100601:

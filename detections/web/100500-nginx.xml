@@ -6,8 +6,10 @@
            requests, level 0) and 31516 (built-in "suspicious URL": .bak, /server-status,
            /.ssh). Each built-in child would otherwise claim the event before our rules are
            evaluated (31108 and 31516 found by the CI logtest on a real 4.14.8 manager).
-  100504 counts the group web_sensitive_probe, which both 100501 and 100505 carry: a scanner
-  with its default user agent ends as 100500/100505, never as 100501.
+  100504 counts 100501 by rule ID, and 100506 counts the scanner variant 100505. Counting
+  the shared group web_sensitive_probe looked cleaner, but 100501 sits under four parents
+  (31100, 31101, 31108, 31516) and a real 4.14.8 manager counted each probe several times:
+  the "10 probes" rule fired on the 4th (found by the CI queue test).
   Deploy:  scripts/deploy/deploy-rules.sh on wazuh-server.
   Test:    docs/projects/06-nginx.md
   Status:  Written; pending validation in the lab.
@@ -66,10 +68,20 @@
   </rule>
 
   <rule id="100504" level="10" frequency="10" timeframe="60" ignore="120">
-    <if_matched_group>web_sensitive_probe</if_matched_group>
+    <if_matched_sid>100501</if_matched_sid>
     <same_source_ip />
     <description>Web: content discovery from $(srcip): 10+ sensitive-path probes within 1 minute</description>
     <mitre>
+      <id>T1595.003</id>
+    </mitre>
+    <group>attack,</group>
+  </rule>
+  <rule id="100506" level="10" frequency="10" timeframe="60" ignore="120">
+    <if_matched_sid>100505</if_matched_sid>
+    <same_source_ip />
+    <description>Web: scanner content discovery from $(srcip): 10+ sensitive-path probes within 1 minute</description>
+    <mitre>
+      <id>T1595.002</id>
       <id>T1595.003</id>
     </mitre>
     <group>attack,</group>
