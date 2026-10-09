@@ -5,6 +5,20 @@ All notable changes to siemlab and its lab kit. The format follows
 [Semantic Versioning](https://semver.org/). Until 1.0.0, a minor version may change the
 command line or the content pack layout.
 
+## [0.4.0] - 2026-10-09
+
+### Added
+- `siemlab wazuh4 logtest` and 26 logtest cases (`detections/logtest/wazuh4.yml`) covering
+  every non-FIM Wazuh 4.x rule, including the edge cases (six root-only failures, a login
+  after a brute force, ten probes).
+- CI runs those cases against the official `wazuh/wazuh-manager` image at the pinned
+  version, after deploying the rules with `deploy-rules.sh`; it also loads the lab
+  signatures in real Suricata (`suricata -T`).
+
+### Changed
+- `deploy-rules.sh` restarts the manager with `wazuh-control` where there is no systemd
+  (containers).
+
 ## [0.3.0] - 2026-10-09
 
 ### Added
@@ -59,6 +73,7 @@ command line or the content pack layout.
 - Hyper-V automation, Windows audit policy script, rule deployment with rollback.
 - Setup guides, project runbooks, incident report template, security policy and CI.
 
-[0.3.0]: https://github.com/exosphere8/siem-home-lab/compare/b9ad025...v0.3.0
+[0.4.0]: https://github.com/exosphere8/siem-home-lab/compare/614741b...v0.4.0
+[0.3.0]: https://github.com/exosphere8/siem-home-lab/compare/b9ad025...614741b
 [0.2.0]: https://github.com/exosphere8/siem-home-lab/compare/08304ea...b9ad025
 [0.1.0]: https://github.com/exosphere8/siem-home-lab/tree/08304ea

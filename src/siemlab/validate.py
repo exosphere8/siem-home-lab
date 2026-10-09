@@ -338,7 +338,7 @@ def load_catalogue(detections: Path) -> Catalogue:
         cat.wazuh.extend(parse_wazuh_file(path, root, cat.issues))
     collections: list[Any] = []
     for path in sorted(detections.rglob("*.yml")):
-        if "wazuh5" in path.relative_to(detections).parts:
+        if {"wazuh5", "logtest"} & set(path.relative_to(detections).parts):
             continue  # Wazuh 5 rules are Sigma-like but not Sigma: see siemlab.wazuh5
         cat.sigma.extend(parse_sigma_file(path, root, cat.issues, collections))
     _pysigma_resolve(collections, cat.issues)

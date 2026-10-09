@@ -23,7 +23,7 @@ written reports, and ships the runbooks and automation to build the lab it was m
 ## Install
 
 ```bash
-pip install siemlab              # or: pip install siemlab-0.3.0-py3-none-any.whl
+pip install siemlab              # or: pip install siemlab-0.4.0-py3-none-any.whl
 pip install "siemlab[sigma]"     # also validate Sigma rules with pySigma
 ```
 

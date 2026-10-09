@@ -54,7 +54,7 @@ Install the package (from a release wheel, or from PyPI once it is published) an
 anywhere: it carries the detections, scripts, runbooks and synthetic samples.
 
 ```bash
-pip install siemlab-0.3.0-py3-none-any.whl              # or, from a clone: pip install -e ".[dev]"
+pip install siemlab-0.4.0-py3-none-any.whl              # or, from a clone: pip install -e ".[dev]"
 
 siemlab demo                                            # correlate the bundled synthetic alerts
 siemlab demo --wazuh5                                   # the same attack, as Wazuh 5 findings

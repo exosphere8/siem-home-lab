@@ -96,7 +96,11 @@ if ! "$OSSEC_DIR/bin/wazuh-analysisd" -t; then
     exit 1
 fi
 
-systemctl restart wazuh-manager
-systemctl is-active --quiet wazuh-manager
+if command -v systemctl >/dev/null 2>&1 && [[ -d /run/systemd/system ]]; then
+    systemctl restart wazuh-manager
+    systemctl is-active --quiet wazuh-manager
+else  # containers (official wazuh/wazuh-manager image) have no systemd
+    "$OSSEC_DIR/bin/wazuh-control" restart >/dev/null
+fi
 echo "Deployed ${#RULE_FILES[@]} rule file(s); wazuh-manager restarted and running."
 echo "Test individual events with: $OSSEC_DIR/bin/wazuh-logtest"

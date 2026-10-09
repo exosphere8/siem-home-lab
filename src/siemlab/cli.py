@@ -34,6 +34,7 @@ from . import (
     export5,
     generate,
     kit,
+    logtest4,
     report,
     schema,
     validate,
@@ -261,6 +262,16 @@ def cmd_wazuh5_export(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_wazuh4_logtest(args: argparse.Namespace) -> int:
+    cases = logtest4.load_cases(args.cases or args.detections / "logtest" / "wazuh4.yml")
+    results = logtest4.run_all(logtest4.socket_call(args.socket), cases)
+    for result in results:
+        print(logtest4.describe(result))
+    failed = sum(not r.passed for r in results)
+    print(f"{len(results) - failed}/{len(results)} case(s) passed")
+    return 1 if failed else 0
+
+
 # -- parser ----------------------------------------------------------------------------------
 
 
@@ -367,6 +378,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_correlate_options(r)
     r.set_defaults(func=cmd_correlate)
+
+    w4 = sub.add_parser("wazuh4", help="Wazuh 4 tools")
+    w4_sub = w4.add_subparsers(dest="wazuh4_command", required=True, metavar="ACTION")
+    lt = w4_sub.add_parser("logtest", help="run the logtest cases on a manager (as root)")
+    lt.add_argument(
+        "--cases", type=Path, help="cases file (default: detections/logtest/wazuh4.yml)"
+    )
+    lt.add_argument("--socket", default=logtest4.DEFAULT_SOCKET, help="logtest socket path")
+    lt.set_defaults(func=cmd_wazuh4_logtest)
 
     w = sub.add_parser("wazuh5", help="Wazuh 5 content pack tools")
     w_sub = w.add_subparsers(dest="wazuh5_command", required=True, metavar="ACTION")

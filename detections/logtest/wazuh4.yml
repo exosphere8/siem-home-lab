@@ -1,0 +1,245 @@
+# Logtest cases for the Wazuh 4.x rules: `sudo siemlab wazuh4 logtest` on the manager.
+# Each case runs its events in one logtest session and checks the rule the last event ends
+# on. CI runs every case against the official wazuh/wazuh-manager image. File-integrity
+# rules (100300-100351) need real syscheck events and are validated live (Project 4).
+cases:
+- name: SSH failed login
+  location: /var/log/auth.log
+  log_format: syslog
+  events:
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for labadmin from 10.10.10.50 port 40001 ssh2'
+  expect:
+    rule: 100100
+    level: 5
+- name: SSH failed login as root
+  location: /var/log/auth.log
+  log_format: syslog
+  events:
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for root from 10.10.10.50 port 40002 ssh2'
+  expect:
+    rule: 100103
+    level: 8
+- name: Six root-only failures are a brute force
+  location: /var/log/auth.log
+  log_format: syslog
+  events:
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for root from 10.10.10.50 port 40010 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for root from 10.10.10.50 port 40011 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for root from 10.10.10.50 port 40012 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for root from 10.10.10.50 port 40013 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for root from 10.10.10.50 port 40014 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for root from 10.10.10.50 port 40015 ssh2'
+  expect:
+    rule: 100101
+    level: 10
+- name: Six mixed failures are a brute force
+  location: /var/log/auth.log
+  log_format: syslog
+  events:
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for labadmin from 10.10.10.50 port 40020 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for root from 10.10.10.50 port 40021 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for labadmin from 10.10.10.50 port 40022 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for root from 10.10.10.50 port 40023 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for labadmin from 10.10.10.50 port 40024 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for root from 10.10.10.50 port 40025 ssh2'
+  expect:
+    rule: 100101
+    level: 10
+- name: Login after a brute force
+  location: /var/log/auth.log
+  log_format: syslog
+  events:
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for labadmin from 10.10.10.50 port 40030 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for labadmin from 10.10.10.50 port 40031 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for labadmin from 10.10.10.50 port 40032 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for labadmin from 10.10.10.50 port 40033 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for labadmin from 10.10.10.50 port 40034 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for labadmin from 10.10.10.50 port 40035 ssh2'
+  - 'Oct  5 10:01:40 ubuntu-endpoint sshd[2340]: Accepted password for labadmin from 10.10.10.50 port 40100 ssh2'
+  expect:
+    rule: 100102
+    level: 13
+- name: New local account
+  location: /var/log/auth.log
+  log_format: syslog
+  events:
+  - 'Oct  5 10:12:01 ubuntu-endpoint useradd[2412]: new user: name=lab-temp, UID=1002, GID=1002, home=/home/lab-temp, shell=/bin/bash, from=/dev/pts/0'
+  expect:
+    rule: 100400
+    level: 8
+- name: Account added to sudo
+  location: /var/log/auth.log
+  log_format: syslog
+  events:
+  - 'Oct  5 10:12:10 ubuntu-endpoint usermod[2419]: add ''lab-temp'' to group ''sudo'''
+  expect:
+    rule: 100401
+    level: 12
+- name: Root shell via sudo
+  location: /var/log/auth.log
+  log_format: syslog
+  events:
+  - 'Oct  5 10:12:30 ubuntu-endpoint sudo:  labadmin : TTY=pts/0 ; PWD=/home/labadmin ; USER=root ; COMMAND=/bin/bash'
+  expect:
+    rule: 100402
+    level: 10
+- name: Repeated sudo password failures
+  location: /var/log/auth.log
+  log_format: syslog
+  events:
+  - 'Oct  5 10:12:45 ubuntu-endpoint sudo:  labadmin : 3 incorrect password attempts ; TTY=pts/0 ; PWD=/home/labadmin ; USER=root ; COMMAND=/usr/bin/id'
+  expect:
+    rule: 100403
+    level: 10
+- name: Probe for /.env
+  location: /var/log/nginx/access.log
+  log_format: syslog
+  events:
+  - 10.10.10.50 - - [05/Oct/2026:10:20:01 +0000] "GET /.env HTTP/1.1" 404 162 "-" "Mozilla/5.0"
+  expect:
+    rule: 100501
+    level: 6
+- name: Path traversal
+  location: /var/log/nginx/access.log
+  log_format: syslog
+  events:
+  - 10.10.10.50 - - [05/Oct/2026:10:20:01 +0000] "GET /download.php?file=../../etc/passwd HTTP/1.1" 404 162 "-" "Mozilla/5.0"
+  expect:
+    rule: 100502
+    level: 10
+- name: SQL injection
+  location: /var/log/nginx/access.log
+  log_format: syslog
+  events:
+  - 10.10.10.50 - - [05/Oct/2026:10:20:01 +0000] "GET /item.php?id=1%20UNION%20SELECT%20name HTTP/1.1" 404 162 "-" "Mozilla/5.0"
+  expect:
+    rule: 100503
+    level: 10
+- name: Scanner user agent
+  location: /var/log/nginx/access.log
+  log_format: syslog
+  events:
+  - 10.10.10.50 - - [05/Oct/2026:10:20:01 +0000] "GET / HTTP/1.1" 200 162 "-" "sqlmap/1.8 (https://sqlmap.org)"
+  expect:
+    rule: 100500
+    level: 8
+- name: Scanner probing a sensitive path
+  location: /var/log/nginx/access.log
+  log_format: syslog
+  events:
+  - 10.10.10.50 - - [05/Oct/2026:10:20:01 +0000] "GET /.git/config HTTP/1.1" 404 162 "-" "gobuster/3.6"
+  expect:
+    rule: 100505
+    level: 8
+- name: Ten sensitive-path probes are content discovery
+  location: /var/log/nginx/access.log
+  log_format: syslog
+  events:
+  - 10.10.10.50 - - [05/Oct/2026:10:20:01 +0000] "GET /.env HTTP/1.1" 404 162 "-" "Mozilla/5.0"
+  - 10.10.10.50 - - [05/Oct/2026:10:20:01 +0000] "GET /.git/config HTTP/1.1" 404 162 "-" "Mozilla/5.0"
+  - 10.10.10.50 - - [05/Oct/2026:10:20:01 +0000] "GET /.aws/credentials HTTP/1.1" 404 162 "-" "Mozilla/5.0"
+  - 10.10.10.50 - - [05/Oct/2026:10:20:01 +0000] "GET /wp-login.php HTTP/1.1" 404 162 "-" "Mozilla/5.0"
+  - 10.10.10.50 - - [05/Oct/2026:10:20:01 +0000] "GET /phpmyadmin/ HTTP/1.1" 404 162 "-" "Mozilla/5.0"
+  - 10.10.10.50 - - [05/Oct/2026:10:20:01 +0000] "GET /server-status HTTP/1.1" 404 162 "-" "Mozilla/5.0"
+  - 10.10.10.50 - - [05/Oct/2026:10:20:01 +0000] "GET /.DS_Store HTTP/1.1" 404 162 "-" "Mozilla/5.0"
+  - 10.10.10.50 - - [05/Oct/2026:10:20:01 +0000] "GET /.ssh/id_rsa HTTP/1.1" 404 162 "-" "Mozilla/5.0"
+  - 10.10.10.50 - - [05/Oct/2026:10:20:01 +0000] "GET /.git/HEAD HTTP/1.1" 404 162 "-" "Mozilla/5.0"
+  - 10.10.10.50 - - [05/Oct/2026:10:20:01 +0000] "GET /.env.bak HTTP/1.1" 404 162 "-" "Mozilla/5.0"
+  expect:
+    rule: 100504
+    level: 10
+- name: Suricata SSH connection burst
+  location: /var/log/suricata/eve.json
+  log_format: json
+  events:
+  - '{"timestamp":"2026-10-05T10:30:00.000000+0000","flow_id":1234567890,"in_iface":"eth0","event_type":"alert","src_ip":"10.10.10.50","src_port":51000,"dest_ip":"10.10.10.20","dest_port":22,"proto":"TCP","alert":{"action":"allowed","gid":1,"signature_id":1000002,"rev":1,"signature":"LAB SSH connection burst","category":"Attempted Administrator Privilege Gain","severity":1}}'
+  expect:
+    rule: 100602
+    level: 10
+- name: Suricata port scan
+  location: /var/log/suricata/eve.json
+  log_format: json
+  events:
+  - '{"timestamp":"2026-10-05T10:30:00.000000+0000","flow_id":1234567890,"in_iface":"eth0","event_type":"alert","src_ip":"10.10.10.50","src_port":51000,"dest_ip":"10.10.10.20","dest_port":22,"proto":"TCP","alert":{"action":"allowed","gid":1,"signature_id":1000001,"rev":1,"signature":"LAB Possible TCP SYN port scan","category":"Attempted Information Leak","severity":2}}'
+  expect:
+    rule: 100601
+    level: 10
+- name: Suricata scanner user agent
+  location: /var/log/suricata/eve.json
+  log_format: json
+  events:
+  - '{"timestamp":"2026-10-05T10:30:00.000000+0000","flow_id":1234567890,"in_iface":"eth0","event_type":"alert","src_ip":"10.10.10.50","src_port":51000,"dest_ip":"10.10.10.20","dest_port":22,"proto":"TCP","alert":{"action":"allowed","gid":1,"signature_id":1000003,"rev":1,"signature":"LAB Web scanner user agent","category":"Web Application Attack","severity":1}}'
+  expect:
+    rule: 100603
+    level: 8
+- name: Other severity-1 Suricata alert
+  location: /var/log/suricata/eve.json
+  log_format: json
+  events:
+  - '{"timestamp":"2026-10-05T10:30:00.000000+0000","flow_id":1234567890,"in_iface":"eth0","event_type":"alert","src_ip":"10.10.10.50","src_port":51000,"dest_ip":"10.10.10.20","dest_port":22,"proto":"TCP","alert":{"action":"allowed","gid":1,"signature_id":2010937,"rev":1,"signature":"ET SCAN Suspicious inbound to mySQL port 3306","category":"Potentially Bad Traffic","severity":1}}'
+  expect:
+    rule: 100600
+    level: 12
+- name: Windows failed logon
+  location: EventChannel
+  log_format: eventchannel
+  events:
+  - '{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"4625","version":"0","level":"0","task":"12544","opcode":"0","keywords":"0x8010000000000000","systemTime":"2026-10-05T11:00:00.0000000Z","eventRecordID":"1000","processID":"640","threadID":"700","channel":"Security","computer":"win11-endpoint","severityValue":"AUDIT_FAILURE","message":"\"Lab event\""},"eventdata":{"targetUserName":"admin","targetDomainName":"WIN11","logonType":"3","ipAddress":"10.10.10.50","ipPort":"51000","status":"0xc000006d","subStatus":"0xc000006a"}}}'
+  expect:
+    rule: 100200
+    level: 5
+- name: Eight failed logons are password guessing
+  location: EventChannel
+  log_format: eventchannel
+  events:
+  - '{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"4625","version":"0","level":"0","task":"12544","opcode":"0","keywords":"0x8010000000000000","systemTime":"2026-10-05T11:00:00.0000000Z","eventRecordID":"1000","processID":"640","threadID":"700","channel":"Security","computer":"win11-endpoint","severityValue":"AUDIT_FAILURE","message":"\"Lab event\""},"eventdata":{"targetUserName":"admin","targetDomainName":"WIN11","logonType":"3","ipAddress":"10.10.10.50","ipPort":"51000","status":"0xc000006d","subStatus":"0xc000006a"}}}'
+  - '{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"4625","version":"0","level":"0","task":"12544","opcode":"0","keywords":"0x8010000000000000","systemTime":"2026-10-05T11:00:00.0000000Z","eventRecordID":"1000","processID":"640","threadID":"700","channel":"Security","computer":"win11-endpoint","severityValue":"AUDIT_FAILURE","message":"\"Lab event\""},"eventdata":{"targetUserName":"administrator","targetDomainName":"WIN11","logonType":"3","ipAddress":"10.10.10.50","ipPort":"51000","status":"0xc000006d","subStatus":"0xc000006a"}}}'
+  - '{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"4625","version":"0","level":"0","task":"12544","opcode":"0","keywords":"0x8010000000000000","systemTime":"2026-10-05T11:00:00.0000000Z","eventRecordID":"1000","processID":"640","threadID":"700","channel":"Security","computer":"win11-endpoint","severityValue":"AUDIT_FAILURE","message":"\"Lab event\""},"eventdata":{"targetUserName":"labadmin","targetDomainName":"WIN11","logonType":"3","ipAddress":"10.10.10.50","ipPort":"51000","status":"0xc000006d","subStatus":"0xc000006a"}}}'
+  - '{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"4625","version":"0","level":"0","task":"12544","opcode":"0","keywords":"0x8010000000000000","systemTime":"2026-10-05T11:00:00.0000000Z","eventRecordID":"1000","processID":"640","threadID":"700","channel":"Security","computer":"win11-endpoint","severityValue":"AUDIT_FAILURE","message":"\"Lab event\""},"eventdata":{"targetUserName":"admin","targetDomainName":"WIN11","logonType":"3","ipAddress":"10.10.10.50","ipPort":"51000","status":"0xc000006d","subStatus":"0xc000006a"}}}'
+  - '{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"4625","version":"0","level":"0","task":"12544","opcode":"0","keywords":"0x8010000000000000","systemTime":"2026-10-05T11:00:00.0000000Z","eventRecordID":"1000","processID":"640","threadID":"700","channel":"Security","computer":"win11-endpoint","severityValue":"AUDIT_FAILURE","message":"\"Lab event\""},"eventdata":{"targetUserName":"administrator","targetDomainName":"WIN11","logonType":"3","ipAddress":"10.10.10.50","ipPort":"51000","status":"0xc000006d","subStatus":"0xc000006a"}}}'
+  - '{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"4625","version":"0","level":"0","task":"12544","opcode":"0","keywords":"0x8010000000000000","systemTime":"2026-10-05T11:00:00.0000000Z","eventRecordID":"1000","processID":"640","threadID":"700","channel":"Security","computer":"win11-endpoint","severityValue":"AUDIT_FAILURE","message":"\"Lab event\""},"eventdata":{"targetUserName":"labadmin","targetDomainName":"WIN11","logonType":"3","ipAddress":"10.10.10.50","ipPort":"51000","status":"0xc000006d","subStatus":"0xc000006a"}}}'
+  - '{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"4625","version":"0","level":"0","task":"12544","opcode":"0","keywords":"0x8010000000000000","systemTime":"2026-10-05T11:00:00.0000000Z","eventRecordID":"1000","processID":"640","threadID":"700","channel":"Security","computer":"win11-endpoint","severityValue":"AUDIT_FAILURE","message":"\"Lab event\""},"eventdata":{"targetUserName":"admin","targetDomainName":"WIN11","logonType":"3","ipAddress":"10.10.10.50","ipPort":"51000","status":"0xc000006d","subStatus":"0xc000006a"}}}'
+  - '{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"4625","version":"0","level":"0","task":"12544","opcode":"0","keywords":"0x8010000000000000","systemTime":"2026-10-05T11:00:00.0000000Z","eventRecordID":"1000","processID":"640","threadID":"700","channel":"Security","computer":"win11-endpoint","severityValue":"AUDIT_FAILURE","message":"\"Lab event\""},"eventdata":{"targetUserName":"guest","targetDomainName":"WIN11","logonType":"3","ipAddress":"10.10.10.50","ipPort":"51000","status":"0xc000006d","subStatus":"0xc000006a"}}}'
+  expect:
+    rule: 100201
+    level: 10
+- name: Windows account locked out
+  location: EventChannel
+  log_format: eventchannel
+  events:
+  - '{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"4740","version":"0","level":"0","task":"12544","opcode":"0","keywords":"0x8020000000000000","systemTime":"2026-10-05T11:00:00.0000000Z","eventRecordID":"1000","processID":"640","threadID":"700","channel":"Security","computer":"win11-endpoint","severityValue":"AUDIT_SUCCESS","message":"\"Lab event\""},"eventdata":{"targetUserName":"labadmin","targetDomainName":"WIN11","subjectUserName":"WIN11$"}}}'
+  expect:
+    rule: 100202
+    level: 8
+- name: Windows RDP logon
+  location: EventChannel
+  log_format: eventchannel
+  events:
+  - '{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"4624","version":"0","level":"0","task":"12544","opcode":"0","keywords":"0x8020000000000000","systemTime":"2026-10-05T11:00:00.0000000Z","eventRecordID":"1000","processID":"640","threadID":"700","channel":"Security","computer":"win11-endpoint","severityValue":"AUDIT_SUCCESS","message":"\"Lab event\""},"eventdata":{"targetUserName":"labadmin","targetDomainName":"WIN11","logonType":"10","ipAddress":"10.10.10.1","ipPort":"50000"}}}'
+  expect:
+    rule: 100203
+    level: 6
+- name: Windows local account created
+  location: EventChannel
+  log_format: eventchannel
+  events:
+  - '{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"4720","version":"0","level":"0","task":"12544","opcode":"0","keywords":"0x8020000000000000","systemTime":"2026-10-05T11:00:00.0000000Z","eventRecordID":"1000","processID":"640","threadID":"700","channel":"Security","computer":"win11-endpoint","severityValue":"AUDIT_SUCCESS","message":"\"Lab event\""},"eventdata":{"targetUserName":"lab-temp","targetDomainName":"WIN11","subjectUserName":"labadmin"}}}'
+  expect:
+    rule: 100204
+    level: 8
+- name: Windows account added to Administrators
+  location: EventChannel
+  log_format: eventchannel
+  events:
+  - '{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"4732","version":"0","level":"0","task":"12544","opcode":"0","keywords":"0x8020000000000000","systemTime":"2026-10-05T11:00:00.0000000Z","eventRecordID":"1000","processID":"640","threadID":"700","channel":"Security","computer":"win11-endpoint","severityValue":"AUDIT_SUCCESS","message":"\"Lab event\""},"eventdata":{"memberName":"-","memberSid":"S-1-5-21-1000-1000-1000-1004","targetUserName":"Administrators","targetDomainName":"Builtin","targetSid":"S-1-5-32-544","subjectUserName":"labadmin"}}}'
+  expect:
+    rule: 100205
+    level: 12
+- name: Windows Security log cleared
+  location: EventChannel
+  log_format: eventchannel
+  events:
+  - '{"win":{"system":{"providerName":"Microsoft-Windows-Eventlog","eventID":"1102","version":"0","level":"0","task":"12544","opcode":"0","keywords":"0x8020000000000000","systemTime":"2026-10-05T11:00:00.0000000Z","eventRecordID":"1000","processID":"640","threadID":"700","channel":"Security","computer":"win11-endpoint","severityValue":"AUDIT_SUCCESS","message":"\"Lab event\""},"eventdata":{}}}'
+  expect:
+    rule: 100206
+    level: 12

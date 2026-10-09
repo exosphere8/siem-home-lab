@@ -117,3 +117,44 @@ jobs:
       - uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  wazuh4-live:
+    name: Rules on a real Wazuh manager (logtest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - run: pip install pyyaml
+      - name: Start the official manager image at the pinned version
+        run: |
+          docker run -d --name wazuh "wazuh/wazuh-manager:$(cat configs/wazuh-version)"
+          for i in $(seq 1 60); do docker exec wazuh test -S /var/ossec/queue/sockets/logtest && break; sleep 5; done
+          docker exec wazuh test -S /var/ossec/queue/sockets/logtest
+      - name: Deploy the rules with deploy-rules.sh (validates with wazuh-analysisd -t)
+        run: |
+          docker exec wazuh mkdir -p /root/lab/scripts /root/lab/configs
+          docker cp detections wazuh:/root/lab/detections
+          docker cp scripts/deploy wazuh:/root/lab/scripts/deploy
+          docker cp configs/wazuh-version wazuh:/root/lab/configs/wazuh-version
+          docker exec wazuh bash /root/lab/scripts/deploy/deploy-rules.sh
+          sleep 10
+          for i in $(seq 1 30); do docker exec wazuh test -S /var/ossec/queue/sockets/logtest && break; sleep 3; done
+      - name: Every logtest case matches its rule
+        run: |
+          python -c "import json,yaml;print(json.dumps(yaml.safe_load(open('detections/logtest/wazuh4.yml'))))" > /tmp/cases.json
+          docker cp /tmp/cases.json wazuh:/tmp/cases.json
+          docker cp src/siemlab/logtest4.py wazuh:/tmp/logtest4.py
+          docker exec wazuh /var/ossec/framework/python/bin/python3 /tmp/logtest4.py --cases /tmp/cases.json
+      - name: Manager log
+        if: failure()
+        run: docker exec wazuh tail -n 80 /var/ossec/logs/ossec.log
+
+  suricata-live:
+    name: Lab signatures load in real Suricata
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: sudo apt-get update -q && sudo apt-get install -y -q suricata
+      - run: sudo suricata -T -c /etc/suricata/suricata.yaml -S detections/network/suricata-local.rules -l /tmp
