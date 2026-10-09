@@ -38,14 +38,14 @@ repository.
 |---|---|---|
 | 0 | Lab planning and repository setup | Done |
 | 1 | Basic Wazuh SIEM lab (server + Linux and Windows agents) | **Next**: scripts and [guides 01-04](docs/setup-guides/) ready |
-| 2 | [Linux SSH brute-force detection](docs/projects/02-ssh-bruteforce.md) | Rules written and CI-validated; lab validation pending |
-| 3 | [Windows authentication monitoring](docs/projects/03-windows-authentication.md) | Rules written and CI-validated; lab validation pending |
-| 4 | [File-integrity monitoring](docs/projects/04-file-integrity.md) | Rules written and CI-validated; lab validation pending |
-| 5 | [Linux privilege and account monitoring](docs/projects/05-privilege-and-accounts.md) | Rules written and CI-validated; lab validation pending |
-| 6 | [Web-server (Nginx) security monitoring](docs/projects/06-nginx.md) | Rules written and CI-validated; lab validation pending |
-| 7 | [Suricata network IDS integration](docs/projects/07-suricata.md) (optional) | Rules written and CI-validated; lab validation pending |
+| 2 | [Linux SSH brute-force detection](docs/projects/02-ssh-bruteforce.md) | Real Wazuh 4.14.8 logtest: 4/5 cases pass. **Bug:** six root-only failures do not trigger brute force (100101); fix pending |
+| 3 | [Windows authentication monitoring](docs/projects/03-windows-authentication.md) | Real Wazuh 4.14.8 logtest: 0/7 pass; test event format or rules under investigation |
+| 4 | [File-integrity monitoring](docs/projects/04-file-integrity.md) | Rules statically validated; needs a live agent (FIM events cannot be logtested) |
+| 5 | [Linux privilege and account monitoring](docs/projects/05-privilege-and-accounts.md) | Real Wazuh 4.14.8 logtest: 4/4 pass; live run pending |
+| 6 | [Web-server (Nginx) security monitoring](docs/projects/06-nginx.md) | Real Wazuh 4.14.8 logtest: 4/6 pass. **Bug:** built-in rules 31108/31516 take scanner and probe-burst events first; fix pending |
+| 7 | [Suricata network IDS integration](docs/projects/07-suricata.md) (optional) | Real Wazuh 4.14.8 logtest: 4/4 pass; signatures load in real Suricata; live run pending |
 | 8 | [Alert correlation with Python](docs/projects/08-alert-correlation.md) | Built and tested on synthetic data; live run pending |
-| 9 | Packaging | `siemlab` builds as an installable package that carries the lab kit ([changelog](CHANGELOG.md), [releasing](RELEASING.md)) |
+| 9 | Packaging | `siemlab` builds as an installable package that carries the lab kit ([changelog](CHANGELOG.md), [releasing](RELEASING.md)); v0.4.0 release held until the rule bugs above are fixed |
 | 10 | [Migration to Wazuh 5](docs/setup-guides/05-upgrading-wazuh.md#migrating-to-wazuh-5) | Content pack and tooling written and CI-validated; waiting for Wazuh 5.0 to be generally available |
 
 ## Try it without the lab
