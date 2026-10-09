@@ -32,21 +32,54 @@ cases:
   - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for root from 10.10.10.50 port 40014 ssh2'
   - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for root from 10.10.10.50 port 40015 ssh2'
   expect:
-    rule: 100101
+    rule: 100107
     level: 10
-- name: Six mixed failures are a brute force
+- name: Six non-root failures are a brute force
   location: /var/log/auth.log
   log_format: syslog
   events:
   - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for labadmin from 10.10.10.50 port 40020 ssh2'
-  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for root from 10.10.10.50 port 40021 ssh2'
-  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for labadmin from 10.10.10.50 port 40022 ssh2'
-  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for root from 10.10.10.50 port 40023 ssh2'
-  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for labadmin from 10.10.10.50 port 40024 ssh2'
-  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for root from 10.10.10.50 port 40025 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for admin from 10.10.10.50 port 40021 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for deploy from 10.10.10.50 port 40022 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for labadmin from 10.10.10.50 port 40023 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for admin from 10.10.10.50 port 40024 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for deploy from 10.10.10.50 port 40025 ssh2'
   expect:
     rule: 100101
     level: 10
+- name: 'Twelve mixed failures: root counted on its own'
+  location: /var/log/auth.log
+  log_format: syslog
+  events:
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for labadmin from 10.10.10.50 port 40040 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for root from 10.10.10.50 port 40041 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for labadmin from 10.10.10.50 port 40042 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for root from 10.10.10.50 port 40043 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for labadmin from 10.10.10.50 port 40044 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for root from 10.10.10.50 port 40045 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for labadmin from 10.10.10.50 port 40046 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for root from 10.10.10.50 port 40047 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for labadmin from 10.10.10.50 port 40048 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for root from 10.10.10.50 port 40049 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for labadmin from 10.10.10.50 port 40050 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for root from 10.10.10.50 port 40051 ssh2'
+  expect:
+    rule: 100107
+    level: 10
+- name: Login after a root brute force
+  location: /var/log/auth.log
+  log_format: syslog
+  events:
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for root from 10.10.10.50 port 40060 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for root from 10.10.10.50 port 40061 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for root from 10.10.10.50 port 40062 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for root from 10.10.10.50 port 40063 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for root from 10.10.10.50 port 40064 ssh2'
+  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for root from 10.10.10.50 port 40065 ssh2'
+  - 'Oct  5 10:01:40 ubuntu-endpoint sshd[2341]: Accepted password for root from 10.10.10.50 port 40101 ssh2'
+  expect:
+    rule: 100102
+    level: 13
 - name: Login after a brute force
   location: /var/log/auth.log
   log_format: syslog
@@ -73,7 +106,7 @@ cases:
   - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for root from 10.10.10.54 port 41004 ssh2'
   - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for root from 10.10.10.54 port 41005 ssh2'
   expect:
-    rule: 100101
+    rule: 100107
     level: 10
 - name: New local account
   location: /var/log/auth.log

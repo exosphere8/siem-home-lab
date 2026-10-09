@@ -4,23 +4,25 @@
   Source:  /var/log/auth.log on ubuntu-endpoint (sshd), via the Wazuh agent.
   Deploy:  scripts/deploy/deploy-rules.sh on wazuh-server (copies, validates, restarts).
   Test:    docs/projects/02-ssh-bruteforce.md (wazuh-logtest samples).
-  Status:  Written; pending validation in the lab.
+  Status:  Every rule passes logtest and analysis-queue cases on a real 4.14.8 manager in CI;
+           live lab validation pending.
 
   How the rules chain:
     100100  re-labels every failed sshd login (any built-in "authentication_failed" rule)
             with our ID and ATT&CK mapping;
-    100101  fires when one source IP produces 6+ failed logins within 2 minutes. It counts the
-            group ssh_failed_login, not rule 100100, because Wazuh remembers only the *final*
-            rule of each event and failed root logins end as 100103;
-    100102  fires when that same source then logs in successfully within 10 minutes;
-            this is the alert that matters most: the guessing worked;
-    100103  any failed login as root is notable on its own (root SSH should be disabled).
-            It is defined BEFORE 100101 on purpose: a rule with if_matched_group only links
-            to rules of that group that are already loaded, so root failures were never
-            counted (found by the CI logtest on a real 4.14.8 manager).
+    100103  any failed login as root is notable on its own (root SSH should be disabled);
+    100101  6+ failed logins (ending as 100100) from one source within 2 minutes;
+    100107  6+ failed root logins (ending as 100103) from one source within 2 minutes;
+    100102  that same source then logs in successfully within 10 minutes: the guessing worked.
 
-  Note: frequency counting in Wazuh can be off by one relative to the number in the
-  attribute; confirm the exact trigger count with the wazuh-logtest steps in the project doc.
+  Why two counters instead of one rule counting the shared group ssh_failed_login: on a real
+  manager, if_matched_group counted every failure several times, because 100100 hangs off
+  many built-in sshd rules and each copy feeds the group's list. The "6 failures" rule fired
+  on the 2nd. if_matched_sid keeps one list per rule, so the count is exact (CI logtest and
+  analysis-queue cases). A mixed attack is counted per account class; siemlab correlate
+  counts all failures together. 100102 follows the group ssh_brute_force: it needs only one
+  earlier match, so duplicates cannot change it. Rules that count or follow other rules are
+  defined after them: links are made at load time.
 -->
 <group name="local,syslog,sshd,">
 
@@ -43,19 +45,30 @@
     </mitre>
     <group>authentication_failed,ssh_failed_login,</group>
   </rule>
+
   <rule id="100101" level="10" frequency="6" timeframe="120" ignore="60">
-    <if_matched_group>ssh_failed_login</if_matched_group>
+    <if_matched_sid>100100</if_matched_sid>
     <same_source_ip />
     <description>SSH: brute force from $(srcip): 6+ failed logins within 2 minutes</description>
     <mitre>
       <id>T1110.001</id>
     </mitre>
-    <group>authentication_failures,attack,</group>
+    <group>authentication_failures,attack,ssh_brute_force,</group>
+  </rule>
+
+  <rule id="100107" level="10" frequency="6" timeframe="120" ignore="60">
+    <if_matched_sid>100103</if_matched_sid>
+    <same_source_ip />
+    <description>SSH: brute force on root from $(srcip): 6+ failed root logins within 2 minutes</description>
+    <mitre>
+      <id>T1110.001</id>
+    </mitre>
+    <group>authentication_failures,attack,ssh_brute_force,</group>
   </rule>
 
   <rule id="100102" level="13" timeframe="600">
     <if_group>authentication_success</if_group>
-    <if_matched_sid>100101</if_matched_sid>
+    <if_matched_group>ssh_brute_force</if_matched_group>
     <same_source_ip />
     <description>SSH: login as '$(dstuser)' from $(srcip) after a brute force: possible account compromise</description>
     <mitre>
@@ -64,6 +77,5 @@
     </mitre>
     <group>authentication_success,attack,</group>
   </rule>
-
 
 </group>

@@ -11,6 +11,9 @@ rules:
     note: A successful login after a brute force needs the history of earlier events.
   100103:
     to: lab-ssh/rules/ssh-failed-root-login.yml
+  100107:
+    to: siemlab:brute_force
+    note: Counts failed root logins per source (6 in 2 minutes). Wazuh 5 rules cannot count.
   100200:
     to: lab-windows-auth/rules/win-failed-logon.yml
   100201:

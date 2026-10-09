@@ -34,7 +34,7 @@ def test_repository_pack_is_valid_and_maps_every_4x_rule(detections):
 def test_counting_rules_moved_to_siemlab(detections):
     pack, _ = _pack_issues(detections)
     moved = {k for k, v in pack.migration.items() if v["to"].startswith("siemlab:")}
-    assert moved == {100101, 100102, 100201, 100504, 100506}
+    assert moved == {100101, 100102, 100107, 100201, 100504, 100506}
 
 
 def test_wcs_field_list_marks_unindexed_fields():
