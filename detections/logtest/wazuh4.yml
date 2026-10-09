@@ -47,7 +47,7 @@ cases:
   expect:
     rule: 100101
     level: 10
-- name: 'Twelve mixed failures: root counted on its own'
+- name: 'Mixed attack: the 6th counted failure fires, root or not'
   location: /var/log/auth.log
   log_format: syslog
   events:
@@ -61,10 +61,8 @@ cases:
   - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for root from 10.10.10.50 port 40047 ssh2'
   - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for labadmin from 10.10.10.50 port 40048 ssh2'
   - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for root from 10.10.10.50 port 40049 ssh2'
-  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for labadmin from 10.10.10.50 port 40050 ssh2'
-  - 'Oct  5 10:00:01 ubuntu-endpoint sshd[2301]: Failed password for root from 10.10.10.50 port 40051 ssh2'
   expect:
-    rule: 100107
+    rule: 100101
     level: 10
 - name: Login after a root brute force
   location: /var/log/auth.log

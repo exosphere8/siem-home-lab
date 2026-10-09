@@ -19,8 +19,10 @@
   manager, if_matched_group counted every failure several times, because 100100 hangs off
   many built-in sshd rules and each copy feeds the group's list. The "6 failures" rule fired
   on the 2nd. if_matched_sid keeps one list per rule, so the count is exact (CI logtest and
-  analysis-queue cases). A mixed attack is counted per account class; siemlab correlate
-  counts all failures together. 100102 follows the group ssh_brute_force: it needs only one
+  analysis-queue cases). In a mixed attack, a root failure still passes 100100 on its way
+  to 100103, so it can be the 6th count of 100101, but only non-root failures are stored
+  there: ten alternating failures fire 100101 on the 10th. siemlab correlate counts all
+  failures together. 100102 follows the group ssh_brute_force: it needs only one
   earlier match, so duplicates cannot change it. Rules that count or follow other rules are
   defined after them: links are made at load time.
 -->
