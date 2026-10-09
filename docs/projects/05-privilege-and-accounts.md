@@ -59,3 +59,4 @@ event first.
 - [ ] Live test produced 100400, 100401, 100402
 - [ ] Test account removed
 - [ ] Wazuh 5: the `lab-linux-accounts` logtest cases pass
+- [x] 100400-100403 verified in CI on a real Wazuh 4.14.8 manager (`siemlab wazuh4 logtest`)

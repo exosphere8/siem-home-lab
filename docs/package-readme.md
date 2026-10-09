@@ -6,7 +6,7 @@ siemlab validates detection rules before they reach a SIEM, deploys a ready-made
 content pack and tests it against real decoders, correlates alerts into incidents with
 written reports, and ships the runbooks and automation to build the lab it was made for.
 
-- **Detections:** 33 Wazuh 4 rules, 30 Wazuh 5 rules in 6 integrations, 11 Sigma rules and 3
+- **Detections:** 35 Wazuh 4 rules, each checked on a real Wazuh 4.14.8 manager in CI,, 30 Wazuh 5 rules in 6 integrations, 11 Sigma rules and 3
   Suricata signatures, mapped to 18 MITRE ATT&CK® techniques. Covers SSH and Windows brute
   force, password spraying, account and privilege changes, file integrity, web attacks and
   network IDS alerts.

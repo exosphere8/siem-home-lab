@@ -3,7 +3,7 @@
 [![CI](https://github.com/exosphere8/siem-home-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/exosphere8/siem-home-lab/actions/workflows/ci.yml)
 ![Wazuh](https://img.shields.io/badge/Wazuh-4.14.8-3595F9)
 ![Wazuh 5](https://img.shields.io/badge/Wazuh_5-content_pack_ready-3595F9)
-![Detections](https://img.shields.io/badge/detections-33_Wazuh_%C2%B7_11_Sigma_%C2%B7_3_Suricata-5C2D91)
+![Detections](https://img.shields.io/badge/detections-35_Wazuh_%C2%B7_11_Sigma_%C2%B7_3_Suricata-5C2D91)
 ![ATT&CK](https://img.shields.io/badge/MITRE_ATT%26CK-18_techniques-C8102E)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
@@ -20,7 +20,7 @@ tested Python toolkit, and documents each investigation the way a SOC analyst wo
 
 | | |
 |---|---|
-| **[Detections](detections/)** | 33 Wazuh rules, 11 Sigma rules (including two Sigma v2 correlation rules) and 3 Suricata signatures, mapped to [18 ATT&CK techniques](docs/detection-coverage.md). |
+| **[Detections](detections/)** | 35 Wazuh rules, 11 Sigma rules (including two Sigma v2 correlation rules) and 3 Suricata signatures, mapped to [18 ATT&CK techniques](docs/detection-coverage.md). |
 | **[Wazuh 5 content pack](detections/wazuh5/)** | The same detections rewritten for Wazuh 5: 30 Sigma-format rules in 6 integrations, checked against the Wazuh Common Schema, with logtest cases and a [rule-by-rule migration map](docs/detection-coverage.md#wazuh-5-migration). |
 | **[`siemlab`](src/siemlab/)** | An installable Python package (`pip install siemlab`) that carries the whole lab kit. It correlates Wazuh 4.x alerts or Wazuh 5 findings into incidents and writes incident reports, validates every rule statically (pySigma included), deploys the Wazuh 5 pack and its real-time counting monitors, exports findings, and generates synthetic data for the lab's attack scenarios. |
 | **[Automation](scripts/)** | Idempotent Hyper-V PowerShell for the network and VMs (`-WhatIf` everywhere), Windows audit policy, and a rule deployment script that rolls back if Wazuh rejects the configuration. |
@@ -38,14 +38,14 @@ repository.
 |---|---|---|
 | 0 | Lab planning and repository setup | Done |
 | 1 | Basic Wazuh SIEM lab (server + Linux and Windows agents) | **Next**: scripts and [guides 01-04](docs/setup-guides/) ready |
-| 2 | [Linux SSH brute-force detection](docs/projects/02-ssh-bruteforce.md) | Real Wazuh 4.14.8 logtest: 4/5 cases pass. **Bug:** six root-only failures do not trigger brute force (100101); fix pending |
-| 3 | [Windows authentication monitoring](docs/projects/03-windows-authentication.md) | Real Wazuh 4.14.8 logtest: 0/7 pass; test event format or rules under investigation |
+| 2 | [Linux SSH brute-force detection](docs/projects/02-ssh-bruteforce.md) | All rules pass logtest on a real Wazuh 4.14.8 manager in CI (7 cases, incl. root-only and mixed brute force); live lab run pending |
+| 3 | [Windows authentication monitoring](docs/projects/03-windows-authentication.md) | All rules pass logtest on a real Wazuh 4.14.8 manager in CI (7 cases, Event Channel through the analysis queue); live lab run pending |
 | 4 | [File-integrity monitoring](docs/projects/04-file-integrity.md) | Rules statically validated; needs a live agent (FIM events cannot be logtested) |
-| 5 | [Linux privilege and account monitoring](docs/projects/05-privilege-and-accounts.md) | Real Wazuh 4.14.8 logtest: 4/4 pass; live run pending |
-| 6 | [Web-server (Nginx) security monitoring](docs/projects/06-nginx.md) | Real Wazuh 4.14.8 logtest: 4/6 pass. **Bug:** built-in rules 31108/31516 take scanner and probe-burst events first; fix pending |
-| 7 | [Suricata network IDS integration](docs/projects/07-suricata.md) (optional) | Real Wazuh 4.14.8 logtest: 4/4 pass; signatures load in real Suricata; live run pending |
+| 5 | [Linux privilege and account monitoring](docs/projects/05-privilege-and-accounts.md) | All rules pass logtest on a real Wazuh 4.14.8 manager in CI (4 cases); live lab run pending |
+| 6 | [Web-server (Nginx) security monitoring](docs/projects/06-nginx.md) | All rules pass logtest on a real Wazuh 4.14.8 manager in CI (9 cases, incl. both 10-probe counters); live lab run pending |
+| 7 | [Suricata network IDS integration](docs/projects/07-suricata.md) (optional) | All rules pass logtest on a real Wazuh 4.14.8 manager in CI (4 cases); signatures load in real Suricata; live lab run pending |
 | 8 | [Alert correlation with Python](docs/projects/08-alert-correlation.md) | Built and tested on synthetic data; live run pending |
-| 9 | Packaging | `siemlab` builds as an installable package that carries the lab kit ([changelog](CHANGELOG.md), [releasing](RELEASING.md)); v0.4.0 release held until the rule bugs above are fixed |
+| 9 | Packaging | `siemlab` is an installable package that carries the lab kit; released as v0.4.0 ([changelog](CHANGELOG.md), [releasing](RELEASING.md)) |
 | 10 | [Migration to Wazuh 5](docs/setup-guides/05-upgrading-wazuh.md#migrating-to-wazuh-5) | Content pack and tooling written and CI-validated; waiting for Wazuh 5.0 to be generally available |
 
 ## Try it without the lab
@@ -60,7 +60,7 @@ siemlab demo                                            # correlate the bundled 
 siemlab demo --wazuh5                                   # the same attack, as Wazuh 5 findings
 siemlab init my-lab && cd my-lab                        # your own copy of the lab kit
 siemlab wazuh5 fetch-schema                             # Wazuh Common Schema field list, once
-siemlab validate --strict                               # 33 Wazuh + 11 Sigma + 3 Suricata + 30 Wazuh 5 rules
+siemlab validate --strict                               # 35 Wazuh + 11 Sigma + 3 Suricata + 30 Wazuh 5 rules
 siemlab wazuh5 deploy --dry-run                         # what the Wazuh 5 pack would create
 ```
 

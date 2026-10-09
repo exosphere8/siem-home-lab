@@ -15,13 +15,16 @@ path traversal and SQL injection, and turn a burst of probes into one meaningful
 | 100501 | 6 | Request for a sensitive path (`/.env`, `/.git/`, `/wp-login.php`, ...) | T1595.003 |
 | 100502 | 10 | Path traversal (`../`, encoded variants, `/etc/passwd`) | T1190 |
 | 100503 | 10 | SQL injection patterns | T1190 |
-| 100504 | 10 | 10+ sensitive-path probes from one address within 1 minute | T1595.003 |
+| 100504 | 10 | 10+ sensitive-path probes (100501) from one address within 1 minute | T1595.003 |
+| 100506 | 10 | 10+ scanner probes (100505) from one address within 1 minute | T1595.002, T1595.003 |
 | 100505 | 8 | A scanner user agent requesting a sensitive path | T1595.002, T1595.003 |
 
-The rules hang off both 31100 (every access-log line) and 31101 (4xx responses), because most
-probes get a 404 and 31101 would otherwise claim them first. Wazuh remembers only the final
-rule of each event, so a scanner probing `/.env` ends as 100505, not 100501. 100504 therefore
-counts the shared group `web_sensitive_probe` instead of one rule ID.
+The rules hang off 31100 (every access-log line), 31101 (4xx responses), 31108 (simple 2xx/3xx
+requests) and 31516 (built-in "suspicious URL"), because each of those built-in rules would
+otherwise claim the event first. Wazuh remembers only the final rule of each event, so a
+scanner probing `/.env` ends as 100505, not 100501, and has its own counter, 100506.
+Counting the shared group `web_sensitive_probe` looked cleaner, but on a real manager it
+counted each probe several times (100501 has four parents) and fired on the 4th probe.
 
 ## Validate with wazuh-logtest
 
@@ -61,3 +64,4 @@ probes in a minute) is now `siemlab correlate`'s `content_discovery`.
 - [ ] logtest results recorded for all four lines
 - [ ] Note which built-in web rules (31103-31106) compete, if any: ____
 - [ ] Wazuh 5: the `lab-nginx` logtest cases pass, including the two-finding scanner case
+- [x] All Nginx rules, including both 10-probe counters, verified in CI on a real Wazuh 4.14.8 manager (`siemlab wazuh4 logtest`)

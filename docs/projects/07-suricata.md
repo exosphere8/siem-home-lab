@@ -61,3 +61,4 @@ an alert from a lab signature produces both findings.
 - [ ] logtest result recorded: ____
 - [ ] eve.json alerts visible in the dashboard
 - [ ] Wazuh 5: the `lab-suricata` logtest case passes, or the fields it shows are recorded: ____
+- [x] 100600-100603 verified in CI on a real Wazuh 4.14.8 manager (`siemlab wazuh4 logtest`); the signatures load in real Suricata (`suricata -T`)

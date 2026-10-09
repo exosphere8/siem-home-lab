@@ -8,16 +8,29 @@ command line or the content pack layout.
 ## [0.4.0] - 2026-10-09
 
 ### Added
-- `siemlab wazuh4 logtest` and 26 logtest cases (`detections/logtest/wazuh4.yml`) covering
+- `siemlab wazuh4 logtest` and 31 logtest cases (`detections/logtest/wazuh4.yml`) covering
   every non-FIM Wazuh 4.x rule, including the edge cases (six root-only failures, a login
   after a brute force, ten probes).
 - CI runs those cases against the official `wazuh/wazuh-manager` image at the pinned
   version, after deploying the rules with `deploy-rules.sh`; it also loads the lab
   signatures in real Suricata (`suricata -T`).
 
+### Fixed
+These were found by the new real-manager tests; none had shown up in static validation.
+- SSH brute force (100101) never counted failed root logins, then, once linked, counted every
+  failure several times and fired on the 2nd. It now counts 100100 by rule ID, and the new
+  100107 counts failed root logins; 100102 follows either.
+- Content discovery (100504) fired on the 4th of 10 probes for the same reason. It now counts
+  100501 by rule ID, and the new 100506 counts scanner probes (100505).
+- The Nginx rules are also children of built-in 31108 and 31516, which claimed scanner
+  requests to `/` and probes for `.bak`, `/server-status` and `/.ssh` first.
+
 ### Changed
 - `deploy-rules.sh` restarts the manager with `wazuh-control` where there is no systemd
   (containers).
+- Windows logtest cases go through the analysis queue as Event Channel XML, because Wazuh 4
+  logtest never applies the Event Channel decoder. A case fails if its counting rule fires
+  before the last event.
 
 ## [0.3.0] - 2026-10-09
 

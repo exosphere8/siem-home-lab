@@ -24,8 +24,9 @@ Detect password guessing against SSH on `ubuntu-endpoint`, and above all the mom
 | Rule | Level | Fires when |
 |---|---|---|
 | 100100 | 5 | Any failed sshd login (re-labels the built-in failure rules with an ATT&CK mapping) |
-| 100101 | 10 | 6+ failures from one source IP within 2 minutes (any account, root included) |
-| 100102 | 13 | A successful login from that source within 10 minutes of 100101: likely compromise |
+| 100101 | 10 | 6+ failed logins (ending as 100100) from one source IP within 2 minutes |
+| 100107 | 10 | 6+ failed **root** logins from one source IP within 2 minutes |
+| 100102 | 13 | A successful login from that source within 10 minutes of 100101 or 100107: likely compromise |
 | 100103 | 8 | A failed login as `root` (root SSH login should be disabled) |
 
 ## Validate the rules with wazuh-logtest
@@ -91,10 +92,11 @@ failures from one source within 2 minutes) and 100102 (a success after it) are n
 
 ## Validation checklist
 
-- [ ] Rules deployed with `deploy-rules.sh` (validation passed)
-- [ ] logtest: 100100, 100103, 100101 and 100102 each observed
-- [ ] logtest: six root-only failures trigger 100101
-- [ ] Actual trigger count for 100101 recorded: ____
+- [x] Rules deployed with `deploy-rules.sh` (validation passed), verified in CI on a real Wazuh 4.14.8 manager (`siemlab wazuh4 logtest`)
+- [x] logtest: 100100, 100103, 100101, 100107 and 100102 each observed
+- [x] logtest: six root-only failures trigger 100107, on the 6th failure and not before
+- [x] Actual trigger count: 6 (100101 and 100107), also through the analysis queue
+- [ ] Live lab: the same results from a real SSH client
 - [ ] Screenshot of the alerts in the dashboard saved to `docs/screenshots/`
 - [ ] Wazuh 5: the `lab-ssh` logtest cases pass (`siemlab wazuh5 deploy`)
 - [ ] Wazuh 5: six root-only failures, exported and correlated, give one `brute_force` incident

@@ -91,3 +91,4 @@ Windows decoder fills with a live event.
 - [ ] Screenshots saved to `docs/screenshots/`
 - [ ] Wazuh 5: a failed logon, an RDP logon, a new account, an Administrators change and a cleared log each produced their finding
 - [ ] Wazuh 5: the RDP logon type and the group SID are read from: ____
+- [x] 100200-100206 verified in CI on a real Wazuh 4.14.8 manager (`siemlab wazuh4 logtest`), sent through the analysis queue as Event Channel XML

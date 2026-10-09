@@ -38,7 +38,7 @@ fill the fields the rules read.
 
 - **No counting.** Wazuh 5 rules match one event at a time and have no `frequency`,
   `timeframe` or `if_matched_*`. The four 4.x rules that counted or followed earlier events
-  (100101, 100102, 100201, 100504) are now correlations in `siemlab correlate`, which runs
+  (100101, 100102, 100107, 100201, 100504, 100506) are now correlations in `siemlab correlate`, which runs
   them automatically when its input is Wazuh 5 findings.
 - **No rule chains.** `if_sid` and `if_group` are gone, so every rule is self-contained.
 - **Every matching rule writes a finding.** In 4.x an event was reported once, by the deepest
