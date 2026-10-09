@@ -15,6 +15,9 @@
     100102  fires when that same source then logs in successfully within 10 minutes;
             this is the alert that matters most: the guessing worked;
     100103  any failed login as root is notable on its own (root SSH should be disabled).
+            It is defined BEFORE 100101 on purpose: a rule with if_matched_group only links
+            to rules of that group that are already loaded, so root failures were never
+            counted (found by the CI logtest on a real 4.14.8 manager).
 
   Note: frequency counting in Wazuh can be off by one relative to the number in the
   attribute; confirm the exact trigger count with the wazuh-logtest steps in the project doc.
@@ -31,6 +34,15 @@
     <group>authentication_failed,ssh_failed_login,</group>
   </rule>
 
+  <rule id="100103" level="8">
+    <if_sid>100100</if_sid>
+    <user>^root$</user>
+    <description>SSH: failed login as root from $(srcip)</description>
+    <mitre>
+      <id>T1110.001</id>
+    </mitre>
+    <group>authentication_failed,ssh_failed_login,</group>
+  </rule>
   <rule id="100101" level="10" frequency="6" timeframe="120" ignore="60">
     <if_matched_group>ssh_failed_login</if_matched_group>
     <same_source_ip />
@@ -53,14 +65,5 @@
     <group>authentication_success,attack,</group>
   </rule>
 
-  <rule id="100103" level="8">
-    <if_sid>100100</if_sid>
-    <user>^root$</user>
-    <description>SSH: failed login as root from $(srcip)</description>
-    <mitre>
-      <id>T1110.001</id>
-    </mitre>
-    <group>authentication_failed,ssh_failed_login,</group>
-  </rule>
 
 </group>

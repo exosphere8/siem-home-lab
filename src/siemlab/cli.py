@@ -264,7 +264,7 @@ def cmd_wazuh5_export(args: argparse.Namespace) -> int:
 
 def cmd_wazuh4_logtest(args: argparse.Namespace) -> int:
     cases = logtest4.load_cases(args.cases or args.detections / "logtest" / "wazuh4.yml")
-    results = logtest4.run_all(logtest4.socket_call(args.socket), cases)
+    results = logtest4.run_all(logtest4.socket_call(args.socket), cases, args.queue, args.alerts)
     for result in results:
         print(logtest4.describe(result))
     failed = sum(not r.passed for r in results)
@@ -386,6 +386,8 @@ def build_parser() -> argparse.ArgumentParser:
         "--cases", type=Path, help="cases file (default: detections/logtest/wazuh4.yml)"
     )
     lt.add_argument("--socket", default=logtest4.DEFAULT_SOCKET, help="logtest socket path")
+    lt.add_argument("--queue", default=logtest4.DEFAULT_QUEUE, help="analysis queue socket")
+    lt.add_argument("--alerts", default=logtest4.DEFAULT_ALERTS, help="alerts.json path")
     lt.set_defaults(func=cmd_wazuh4_logtest)
 
     w = sub.add_parser("wazuh5", help="Wazuh 5 content pack tools")

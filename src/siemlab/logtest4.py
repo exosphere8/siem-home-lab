@@ -5,6 +5,11 @@ logtest session (so frequency rules see the earlier lines), and compares the rul
 line ended on with the expected rule ID and level. The cases live in
 ``detections/logtest/wazuh4.yml``.
 
+Windows Event Channel cases (``log_format: eventchannel``) cannot use logtest: it always
+decodes input as a plain log line, never with the Event Channel decoder. Those cases are
+sent to the manager's event queue instead, the way an agent's events arrive, and the alert of
+the last event is read back from ``alerts.json`` (matched on ``eventRecordID``).
+
 Run it on the manager, as root (the logtest socket belongs to root:wazuh)::
 
     sudo siemlab wazuh4 logtest
@@ -24,12 +29,15 @@ import json
 import socket
 import struct
 import sys
+import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 DEFAULT_SOCKET = "/var/ossec/queue/sockets/logtest"
+DEFAULT_QUEUE = "/var/ossec/queue/sockets/queue"
+DEFAULT_ALERTS = "/var/ossec/logs/alerts/alerts.json"
 
 Call = Callable[[str, dict[str, Any]], dict[str, Any]]
 
@@ -50,6 +58,7 @@ class Result:
     rule: str | None
     level: int | None
     error: str | None = None
+    trail: tuple[str, ...] = ()  # the rule each event ended on, for diagnosis
 
     @property
     def passed(self) -> bool:
@@ -133,6 +142,7 @@ def socket_call(path: str) -> Call:
 def run_case(call: Call, case: Case) -> Result:
     token = None
     reply: dict[str, Any] = {}
+    trail: list[str] = []
     try:
         for event in case.events:
             params: dict[str, Any] = {
@@ -151,19 +161,81 @@ def run_case(call: Call, case: Case) -> Result:
                     f"logtest error {reply.get('error')}: {reply.get('message', '')}",
                 )
             token = (reply.get("data") or {}).get("token") or token
+            matched = ((reply.get("data") or {}).get("output") or {}).get("rule") or {}
+            trail.append(str(matched.get("id", "-")))
     finally:
         if token:
             with contextlib.suppress(OSError):  # the session also expires on its own
                 call("remove_session", {"token": token})
     rule = ((reply.get("data") or {}).get("output") or {}).get("rule") or {}
     if not rule:
-        return Result(case, None, None)
+        return Result(case, None, None, trail=tuple(trail))
     level = rule.get("level")
-    return Result(case, str(rule.get("id")), int(level) if level is not None else None)
+    return Result(
+        case, str(rule.get("id")), int(level) if level is not None else None, trail=tuple(trail)
+    )
 
 
-def run_all(call: Call, cases: list[Case]) -> list[Result]:
-    return [run_case(call, case) for case in cases]
+def _record_id(event: str) -> str | None:
+    try:
+        return str(json.loads(event)["win"]["system"]["eventRecordID"])
+    except (ValueError, KeyError, TypeError):
+        return None
+
+
+def run_queue_case(
+    case: Case, queue: str = DEFAULT_QUEUE, alerts: str = DEFAULT_ALERTS, timeout: float = 15
+) -> Result:
+    """Send Event Channel events to the analysis queue and read their alerts back."""
+    family = getattr(socket, "AF_UNIX", None)
+    if family is None:
+        raise OSError("the event queue needs a Unix system: run this on the manager")
+    wanted = _record_id(case.events[-1])
+    if wanted is None:
+        return Result(case, None, None, "the last event needs win.system.eventRecordID")
+    start = Path(alerts).stat().st_size if Path(alerts).exists() else 0
+    with socket.socket(family, socket.SOCK_DGRAM) as sock:
+        for event in case.events:
+            sock.sendto(f"f:{case.location}:{event}".encode(), queue)
+            time.sleep(0.2)
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        with open(alerts, "rb") as f:
+            f.seek(start)
+            lines = f.read().decode("utf-8", "replace").splitlines()
+        trail = []
+        for line in lines:
+            try:
+                alert = json.loads(line)
+            except ValueError:
+                continue
+            system = ((alert.get("data") or {}).get("win") or {}).get("system") or {}
+            rule = alert.get("rule") or {}
+            trail.append(str(rule.get("id")))
+            if str(system.get("eventRecordID")) == wanted:
+                level = rule.get("level")
+                return Result(
+                    case,
+                    str(rule.get("id")),
+                    int(level) if level is not None else None,
+                    trail=tuple(trail),
+                )
+        time.sleep(0.5)
+    return Result(case, None, None, trail=tuple(trail))
+
+
+def run_all(
+    call: Call,
+    cases: list[Case],
+    queue: str = DEFAULT_QUEUE,
+    alerts: str = DEFAULT_ALERTS,
+) -> list[Result]:
+    return [
+        run_queue_case(case, queue, alerts)
+        if case.log_format == "eventchannel"
+        else run_case(call, case)
+        for case in cases
+    ]
 
 
 def describe(result: Result) -> str:
@@ -171,15 +243,21 @@ def describe(result: Result) -> str:
     got = (result.rule or "no rule") + (f" (level {result.level})" if result.level else "")
     status = "PASS" if result.passed else "FAIL"
     line = f"{status} {result.case.name}: expected {want}, got {got}"
-    return line + (f" [{result.error}]" if result.error else "")
+    if result.error:
+        line += f" [{result.error}]"
+    if not result.passed and result.trail:
+        line += f" (rules per event: {' '.join(result.trail)})"
+    return line
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run Wazuh 4.x logtest cases.")
     parser.add_argument("--cases", type=Path, required=True, help="cases file (.yml or .json)")
     parser.add_argument("--socket", default=DEFAULT_SOCKET, help="logtest socket path")
+    parser.add_argument("--queue", default=DEFAULT_QUEUE, help="analysis queue socket path")
+    parser.add_argument("--alerts", default=DEFAULT_ALERTS, help="alerts.json path")
     args = parser.parse_args(argv)
-    results = run_all(socket_call(args.socket), load_cases(args.cases))
+    results = run_all(socket_call(args.socket), load_cases(args.cases), args.queue, args.alerts)
     for result in results:
         print(describe(result))
     failed = sum(not r.passed for r in results)
