@@ -38,11 +38,11 @@ repository.
 |---|---|---|
 | 0 | Lab planning and repository setup | Done |
 | 1 | Basic Wazuh SIEM lab (server + Linux and Windows agents) | **Next**: scripts and [guides 01-04](docs/setup-guides/) ready |
-| 2 | [Linux SSH brute-force detection](docs/projects/02-ssh-bruteforce.md) | All rules pass logtest on a real Wazuh 4.14.8 manager in CI (7 cases, incl. root-only and mixed brute force); live lab run pending |
+| 2 | [Linux SSH brute-force detection](docs/projects/02-ssh-bruteforce.md) | All rules pass logtest on a real Wazuh 4.14.8 manager in CI (8 cases, incl. root-only and mixed brute force); live lab run pending |
 | 3 | [Windows authentication monitoring](docs/projects/03-windows-authentication.md) | All rules pass logtest on a real Wazuh 4.14.8 manager in CI (7 cases, Event Channel through the analysis queue); live lab run pending |
 | 4 | [File-integrity monitoring](docs/projects/04-file-integrity.md) | Rules statically validated; needs a live agent (FIM events cannot be logtested) |
 | 5 | [Linux privilege and account monitoring](docs/projects/05-privilege-and-accounts.md) | All rules pass logtest on a real Wazuh 4.14.8 manager in CI (4 cases); live lab run pending |
-| 6 | [Web-server (Nginx) security monitoring](docs/projects/06-nginx.md) | All rules pass logtest on a real Wazuh 4.14.8 manager in CI (9 cases, incl. both 10-probe counters); live lab run pending |
+| 6 | [Web-server (Nginx) security monitoring](docs/projects/06-nginx.md) | All rules pass logtest on a real Wazuh 4.14.8 manager in CI (8 cases, incl. both 10-probe counters); live lab run pending |
 | 7 | [Suricata network IDS integration](docs/projects/07-suricata.md) (optional) | All rules pass logtest on a real Wazuh 4.14.8 manager in CI (4 cases); signatures load in real Suricata; live lab run pending |
 | 8 | [Alert correlation with Python](docs/projects/08-alert-correlation.md) | Built and tested on synthetic data; live run pending |
 | 9 | Packaging | `siemlab` is an installable package that carries the lab kit; released as v0.4.0 ([changelog](CHANGELOG.md), [releasing](RELEASING.md)) |
