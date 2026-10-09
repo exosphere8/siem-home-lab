@@ -6,9 +6,11 @@ line ended on with the expected rule ID and level. The cases live in
 ``detections/logtest/wazuh4.yml``.
 
 Windows Event Channel cases (``log_format: eventchannel``) cannot use logtest: it always
-decodes input as a plain log line, never with the Event Channel decoder. Those cases are
-sent to the manager's event queue instead, the way an agent's events arrive, and the alert of
-the last event is read back from ``alerts.json`` (matched on ``eventRecordID``).
+decodes input as a plain log line, never with the Event Channel decoder. Those cases, and any
+case with ``mode: queue``, are sent to the manager's analysis queue instead, the way agent
+events arrive, and the alert of the last event is read back from ``alerts.json`` (matched on
+the Windows ``EventRecordID``, or on the full log line). Queue cases share the manager's real
+state, so give each one its own source address.
 
 Run it on the manager, as root (the logtest socket belongs to root:wazuh)::
 
@@ -26,6 +28,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import json
+import re
 import socket
 import struct
 import sys
@@ -50,6 +53,7 @@ class Case:
     events: tuple[str, ...]
     rule: str
     level: int | None = None
+    mode: str = "logtest"  # or "queue"
 
 
 @dataclass(frozen=True)
@@ -83,6 +87,11 @@ def parse_cases(doc: Any) -> list[Case]:
         if "rule" not in expect:
             raise ValueError(f"case {n}: 'expect' needs a 'rule'")
         level = expect.get("level")
+        mode = str(item.get("mode", "logtest"))
+        if mode not in ("logtest", "queue"):
+            raise ValueError(f"case {n}: mode must be logtest or queue")
+        if str(item.get("log_format", "")) == "eventchannel":
+            mode = "queue"  # logtest cannot apply the Event Channel decoder
         cases.append(
             Case(
                 name=str(item.get("name") or f"case {n}"),
@@ -91,6 +100,7 @@ def parse_cases(doc: Any) -> list[Case]:
                 events=tuple(str(e) for e in events),
                 rule=str(expect["rule"]),
                 level=int(level) if level is not None else None,
+                mode=mode,
             )
         )
     return cases
@@ -177,10 +187,15 @@ def run_case(call: Call, case: Case) -> Result:
 
 
 def _record_id(event: str) -> str | None:
-    try:
-        return str(json.loads(event)["win"]["system"]["eventRecordID"])
-    except (ValueError, KeyError, TypeError):
-        return None
+    match = re.search(r"<EventRecordID>(\d+)</EventRecordID>", event)
+    return match.group(1) if match else None
+
+
+def _alert_matches(alert: dict[str, Any], case: Case, record_id: str | None) -> bool:
+    if record_id is not None:
+        system = ((alert.get("data") or {}).get("win") or {}).get("system") or {}
+        return str(system.get("eventRecordID")) == record_id
+    return str(alert.get("full_log", "")) == case.events[-1]
 
 
 def run_queue_case(
@@ -190,13 +205,15 @@ def run_queue_case(
     family = getattr(socket, "AF_UNIX", None)
     if family is None:
         raise OSError("the event queue needs a Unix system: run this on the manager")
-    wanted = _record_id(case.events[-1])
-    if wanted is None:
-        return Result(case, None, None, "the last event needs win.system.eventRecordID")
+    eventchannel = case.log_format == "eventchannel"
+    wanted = _record_id(case.events[-1]) if eventchannel else None
+    if eventchannel and wanted is None:
+        return Result(case, None, None, "the last event needs an <EventRecordID>")
+    prefix = "f" if eventchannel else "1"
     start = Path(alerts).stat().st_size if Path(alerts).exists() else 0
     with socket.socket(family, socket.SOCK_DGRAM) as sock:
         for event in case.events:
-            sock.sendto(f"f:{case.location}:{event}".encode(), queue)
+            sock.sendto(f"{prefix}:{case.location}:{event}".encode(), queue)
             time.sleep(0.2)
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
@@ -209,10 +226,9 @@ def run_queue_case(
                 alert = json.loads(line)
             except ValueError:
                 continue
-            system = ((alert.get("data") or {}).get("win") or {}).get("system") or {}
             rule = alert.get("rule") or {}
             trail.append(str(rule.get("id")))
-            if str(system.get("eventRecordID")) == wanted:
+            if _alert_matches(alert, case, wanted):
                 level = rule.get("level")
                 return Result(
                     case,
@@ -231,9 +247,7 @@ def run_all(
     alerts: str = DEFAULT_ALERTS,
 ) -> list[Result]:
     return [
-        run_queue_case(case, queue, alerts)
-        if case.log_format == "eventchannel"
-        else run_case(call, case)
+        run_queue_case(case, queue, alerts) if case.mode == "queue" else run_case(call, case)
         for case in cases
     ]
 

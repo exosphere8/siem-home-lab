@@ -1,8 +1,9 @@
 # Logtest cases for the Wazuh 4.x rules: `sudo siemlab wazuh4 logtest` on the manager.
 # Each case runs its events in one logtest session and checks the rule the last event ends
-# on. Windows cases go through the event queue (logtest cannot decode Event Channel). CI
-# runs every case on the official wazuh/wazuh-manager image. File-integrity rules
-# (100300-100351) need real syscheck events and are validated live (Project 4).
+# on. Windows cases and `mode: queue` cases go through the manager's analysis queue
+# instead (logtest cannot decode Event Channel). CI runs every case on the official
+# wazuh/wazuh-manager image. File-integrity rules (100300-100351) need real syscheck
+# events and are validated live (Project 4).
 cases:
 - name: SSH failed login
   location: /var/log/auth.log
@@ -149,6 +150,24 @@ cases:
   expect:
     rule: 100504
     level: 10
+- name: Ten probes through the analysis queue (production path)
+  location: /var/log/nginx/access.log
+  log_format: syslog
+  mode: queue
+  events:
+  - 10.10.10.53 - - [05/Oct/2026:10:20:01 +0000] "GET /.env HTTP/1.1" 404 162 "-" "Mozilla/5.0"
+  - 10.10.10.53 - - [05/Oct/2026:10:20:01 +0000] "GET /.git/config HTTP/1.1" 404 162 "-" "Mozilla/5.0"
+  - 10.10.10.53 - - [05/Oct/2026:10:20:01 +0000] "GET /.aws/credentials HTTP/1.1" 404 162 "-" "Mozilla/5.0"
+  - 10.10.10.53 - - [05/Oct/2026:10:20:01 +0000] "GET /wp-login.php HTTP/1.1" 404 162 "-" "Mozilla/5.0"
+  - 10.10.10.53 - - [05/Oct/2026:10:20:01 +0000] "GET /phpmyadmin/ HTTP/1.1" 404 162 "-" "Mozilla/5.0"
+  - 10.10.10.53 - - [05/Oct/2026:10:20:01 +0000] "GET /server-status HTTP/1.1" 404 162 "-" "Mozilla/5.0"
+  - 10.10.10.53 - - [05/Oct/2026:10:20:01 +0000] "GET /.DS_Store HTTP/1.1" 404 162 "-" "Mozilla/5.0"
+  - 10.10.10.53 - - [05/Oct/2026:10:20:01 +0000] "GET /.ssh/id_rsa HTTP/1.1" 404 162 "-" "Mozilla/5.0"
+  - 10.10.10.53 - - [05/Oct/2026:10:20:01 +0000] "GET /.git/HEAD HTTP/1.1" 404 162 "-" "Mozilla/5.0"
+  - 10.10.10.53 - - [05/Oct/2026:10:20:01 +0000] "GET /.env.bak HTTP/1.1" 404 162 "-" "Mozilla/5.0"
+  expect:
+    rule: 100504
+    level: 10
 - name: Suricata SSH connection burst
   location: /var/log/suricata/eve.json
   log_format: json
@@ -185,14 +204,14 @@ cases:
   location: EventChannel
   log_format: eventchannel
   events:
-  - '{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"4625","version":"0","level":"0","task":"12544","opcode":"0","keywords":"0x8010000000000000","systemTime":"2026-10-05T11:00:00.0000000Z","eventRecordID":"5001","processID":"640","threadID":"700","channel":"Security","computer":"win11-endpoint","severityValue":"AUDIT_FAILURE","message":"\"Lab event\""},"eventdata":{"targetUserName":"admin","targetDomainName":"WIN11","logonType":"3","ipAddress":"10.10.10.51","ipPort":"51000","status":"0xc000006d","subStatus":"0xc000006a"}}}'
-  - '{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"4625","version":"0","level":"0","task":"12544","opcode":"0","keywords":"0x8010000000000000","systemTime":"2026-10-05T11:00:00.0000000Z","eventRecordID":"5002","processID":"640","threadID":"700","channel":"Security","computer":"win11-endpoint","severityValue":"AUDIT_FAILURE","message":"\"Lab event\""},"eventdata":{"targetUserName":"administrator","targetDomainName":"WIN11","logonType":"3","ipAddress":"10.10.10.51","ipPort":"51000","status":"0xc000006d","subStatus":"0xc000006a"}}}'
-  - '{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"4625","version":"0","level":"0","task":"12544","opcode":"0","keywords":"0x8010000000000000","systemTime":"2026-10-05T11:00:00.0000000Z","eventRecordID":"5003","processID":"640","threadID":"700","channel":"Security","computer":"win11-endpoint","severityValue":"AUDIT_FAILURE","message":"\"Lab event\""},"eventdata":{"targetUserName":"labadmin","targetDomainName":"WIN11","logonType":"3","ipAddress":"10.10.10.51","ipPort":"51000","status":"0xc000006d","subStatus":"0xc000006a"}}}'
-  - '{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"4625","version":"0","level":"0","task":"12544","opcode":"0","keywords":"0x8010000000000000","systemTime":"2026-10-05T11:00:00.0000000Z","eventRecordID":"5004","processID":"640","threadID":"700","channel":"Security","computer":"win11-endpoint","severityValue":"AUDIT_FAILURE","message":"\"Lab event\""},"eventdata":{"targetUserName":"admin","targetDomainName":"WIN11","logonType":"3","ipAddress":"10.10.10.51","ipPort":"51000","status":"0xc000006d","subStatus":"0xc000006a"}}}'
-  - '{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"4625","version":"0","level":"0","task":"12544","opcode":"0","keywords":"0x8010000000000000","systemTime":"2026-10-05T11:00:00.0000000Z","eventRecordID":"5005","processID":"640","threadID":"700","channel":"Security","computer":"win11-endpoint","severityValue":"AUDIT_FAILURE","message":"\"Lab event\""},"eventdata":{"targetUserName":"administrator","targetDomainName":"WIN11","logonType":"3","ipAddress":"10.10.10.51","ipPort":"51000","status":"0xc000006d","subStatus":"0xc000006a"}}}'
-  - '{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"4625","version":"0","level":"0","task":"12544","opcode":"0","keywords":"0x8010000000000000","systemTime":"2026-10-05T11:00:00.0000000Z","eventRecordID":"5006","processID":"640","threadID":"700","channel":"Security","computer":"win11-endpoint","severityValue":"AUDIT_FAILURE","message":"\"Lab event\""},"eventdata":{"targetUserName":"labadmin","targetDomainName":"WIN11","logonType":"3","ipAddress":"10.10.10.51","ipPort":"51000","status":"0xc000006d","subStatus":"0xc000006a"}}}'
-  - '{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"4625","version":"0","level":"0","task":"12544","opcode":"0","keywords":"0x8010000000000000","systemTime":"2026-10-05T11:00:00.0000000Z","eventRecordID":"5007","processID":"640","threadID":"700","channel":"Security","computer":"win11-endpoint","severityValue":"AUDIT_FAILURE","message":"\"Lab event\""},"eventdata":{"targetUserName":"admin","targetDomainName":"WIN11","logonType":"3","ipAddress":"10.10.10.51","ipPort":"51000","status":"0xc000006d","subStatus":"0xc000006a"}}}'
-  - '{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"4625","version":"0","level":"0","task":"12544","opcode":"0","keywords":"0x8010000000000000","systemTime":"2026-10-05T11:00:00.0000000Z","eventRecordID":"5008","processID":"640","threadID":"700","channel":"Security","computer":"win11-endpoint","severityValue":"AUDIT_FAILURE","message":"\"Lab event\""},"eventdata":{"targetUserName":"guest","targetDomainName":"WIN11","logonType":"3","ipAddress":"10.10.10.51","ipPort":"51000","status":"0xc000006d","subStatus":"0xc000006a"}}}'
+  - '{"Message":"Lab event","Event":"<Event xmlns=''http://schemas.microsoft.com/win/2004/08/events/event''><System><Provider Name=''Microsoft-Windows-Security-Auditing'' Guid=''{54849625-5478-4994-a5ba-3e3b0328c30d}''/><EventID>4625</EventID><Version>0</Version><Level>0</Level><Task>12544</Task><Opcode>0</Opcode><Keywords>0x8010000000000000</Keywords><TimeCreated SystemTime=''2026-10-05T11:00:00.0000000Z''/><EventRecordID>5001</EventRecordID><Correlation/><Execution ProcessID=''640'' ThreadID=''700''/><Channel>Security</Channel><Computer>win11-endpoint</Computer><Security/></System><EventData><Data Name=''TargetUserName''>admin</Data><Data Name=''TargetDomainName''>WIN11</Data><Data Name=''LogonType''>3</Data><Data Name=''IpAddress''>10.10.10.51</Data><Data Name=''IpPort''>51000</Data><Data Name=''Status''>0xc000006d</Data><Data Name=''SubStatus''>0xc000006a</Data></EventData></Event>"}'
+  - '{"Message":"Lab event","Event":"<Event xmlns=''http://schemas.microsoft.com/win/2004/08/events/event''><System><Provider Name=''Microsoft-Windows-Security-Auditing'' Guid=''{54849625-5478-4994-a5ba-3e3b0328c30d}''/><EventID>4625</EventID><Version>0</Version><Level>0</Level><Task>12544</Task><Opcode>0</Opcode><Keywords>0x8010000000000000</Keywords><TimeCreated SystemTime=''2026-10-05T11:00:00.0000000Z''/><EventRecordID>5002</EventRecordID><Correlation/><Execution ProcessID=''640'' ThreadID=''700''/><Channel>Security</Channel><Computer>win11-endpoint</Computer><Security/></System><EventData><Data Name=''TargetUserName''>administrator</Data><Data Name=''TargetDomainName''>WIN11</Data><Data Name=''LogonType''>3</Data><Data Name=''IpAddress''>10.10.10.51</Data><Data Name=''IpPort''>51000</Data><Data Name=''Status''>0xc000006d</Data><Data Name=''SubStatus''>0xc000006a</Data></EventData></Event>"}'
+  - '{"Message":"Lab event","Event":"<Event xmlns=''http://schemas.microsoft.com/win/2004/08/events/event''><System><Provider Name=''Microsoft-Windows-Security-Auditing'' Guid=''{54849625-5478-4994-a5ba-3e3b0328c30d}''/><EventID>4625</EventID><Version>0</Version><Level>0</Level><Task>12544</Task><Opcode>0</Opcode><Keywords>0x8010000000000000</Keywords><TimeCreated SystemTime=''2026-10-05T11:00:00.0000000Z''/><EventRecordID>5003</EventRecordID><Correlation/><Execution ProcessID=''640'' ThreadID=''700''/><Channel>Security</Channel><Computer>win11-endpoint</Computer><Security/></System><EventData><Data Name=''TargetUserName''>labadmin</Data><Data Name=''TargetDomainName''>WIN11</Data><Data Name=''LogonType''>3</Data><Data Name=''IpAddress''>10.10.10.51</Data><Data Name=''IpPort''>51000</Data><Data Name=''Status''>0xc000006d</Data><Data Name=''SubStatus''>0xc000006a</Data></EventData></Event>"}'
+  - '{"Message":"Lab event","Event":"<Event xmlns=''http://schemas.microsoft.com/win/2004/08/events/event''><System><Provider Name=''Microsoft-Windows-Security-Auditing'' Guid=''{54849625-5478-4994-a5ba-3e3b0328c30d}''/><EventID>4625</EventID><Version>0</Version><Level>0</Level><Task>12544</Task><Opcode>0</Opcode><Keywords>0x8010000000000000</Keywords><TimeCreated SystemTime=''2026-10-05T11:00:00.0000000Z''/><EventRecordID>5004</EventRecordID><Correlation/><Execution ProcessID=''640'' ThreadID=''700''/><Channel>Security</Channel><Computer>win11-endpoint</Computer><Security/></System><EventData><Data Name=''TargetUserName''>admin</Data><Data Name=''TargetDomainName''>WIN11</Data><Data Name=''LogonType''>3</Data><Data Name=''IpAddress''>10.10.10.51</Data><Data Name=''IpPort''>51000</Data><Data Name=''Status''>0xc000006d</Data><Data Name=''SubStatus''>0xc000006a</Data></EventData></Event>"}'
+  - '{"Message":"Lab event","Event":"<Event xmlns=''http://schemas.microsoft.com/win/2004/08/events/event''><System><Provider Name=''Microsoft-Windows-Security-Auditing'' Guid=''{54849625-5478-4994-a5ba-3e3b0328c30d}''/><EventID>4625</EventID><Version>0</Version><Level>0</Level><Task>12544</Task><Opcode>0</Opcode><Keywords>0x8010000000000000</Keywords><TimeCreated SystemTime=''2026-10-05T11:00:00.0000000Z''/><EventRecordID>5005</EventRecordID><Correlation/><Execution ProcessID=''640'' ThreadID=''700''/><Channel>Security</Channel><Computer>win11-endpoint</Computer><Security/></System><EventData><Data Name=''TargetUserName''>administrator</Data><Data Name=''TargetDomainName''>WIN11</Data><Data Name=''LogonType''>3</Data><Data Name=''IpAddress''>10.10.10.51</Data><Data Name=''IpPort''>51000</Data><Data Name=''Status''>0xc000006d</Data><Data Name=''SubStatus''>0xc000006a</Data></EventData></Event>"}'
+  - '{"Message":"Lab event","Event":"<Event xmlns=''http://schemas.microsoft.com/win/2004/08/events/event''><System><Provider Name=''Microsoft-Windows-Security-Auditing'' Guid=''{54849625-5478-4994-a5ba-3e3b0328c30d}''/><EventID>4625</EventID><Version>0</Version><Level>0</Level><Task>12544</Task><Opcode>0</Opcode><Keywords>0x8010000000000000</Keywords><TimeCreated SystemTime=''2026-10-05T11:00:00.0000000Z''/><EventRecordID>5006</EventRecordID><Correlation/><Execution ProcessID=''640'' ThreadID=''700''/><Channel>Security</Channel><Computer>win11-endpoint</Computer><Security/></System><EventData><Data Name=''TargetUserName''>labadmin</Data><Data Name=''TargetDomainName''>WIN11</Data><Data Name=''LogonType''>3</Data><Data Name=''IpAddress''>10.10.10.51</Data><Data Name=''IpPort''>51000</Data><Data Name=''Status''>0xc000006d</Data><Data Name=''SubStatus''>0xc000006a</Data></EventData></Event>"}'
+  - '{"Message":"Lab event","Event":"<Event xmlns=''http://schemas.microsoft.com/win/2004/08/events/event''><System><Provider Name=''Microsoft-Windows-Security-Auditing'' Guid=''{54849625-5478-4994-a5ba-3e3b0328c30d}''/><EventID>4625</EventID><Version>0</Version><Level>0</Level><Task>12544</Task><Opcode>0</Opcode><Keywords>0x8010000000000000</Keywords><TimeCreated SystemTime=''2026-10-05T11:00:00.0000000Z''/><EventRecordID>5007</EventRecordID><Correlation/><Execution ProcessID=''640'' ThreadID=''700''/><Channel>Security</Channel><Computer>win11-endpoint</Computer><Security/></System><EventData><Data Name=''TargetUserName''>admin</Data><Data Name=''TargetDomainName''>WIN11</Data><Data Name=''LogonType''>3</Data><Data Name=''IpAddress''>10.10.10.51</Data><Data Name=''IpPort''>51000</Data><Data Name=''Status''>0xc000006d</Data><Data Name=''SubStatus''>0xc000006a</Data></EventData></Event>"}'
+  - '{"Message":"Lab event","Event":"<Event xmlns=''http://schemas.microsoft.com/win/2004/08/events/event''><System><Provider Name=''Microsoft-Windows-Security-Auditing'' Guid=''{54849625-5478-4994-a5ba-3e3b0328c30d}''/><EventID>4625</EventID><Version>0</Version><Level>0</Level><Task>12544</Task><Opcode>0</Opcode><Keywords>0x8010000000000000</Keywords><TimeCreated SystemTime=''2026-10-05T11:00:00.0000000Z''/><EventRecordID>5008</EventRecordID><Correlation/><Execution ProcessID=''640'' ThreadID=''700''/><Channel>Security</Channel><Computer>win11-endpoint</Computer><Security/></System><EventData><Data Name=''TargetUserName''>guest</Data><Data Name=''TargetDomainName''>WIN11</Data><Data Name=''LogonType''>3</Data><Data Name=''IpAddress''>10.10.10.51</Data><Data Name=''IpPort''>51000</Data><Data Name=''Status''>0xc000006d</Data><Data Name=''SubStatus''>0xc000006a</Data></EventData></Event>"}'
   expect:
     rule: 100201
     level: 10
@@ -200,7 +219,7 @@ cases:
   location: EventChannel
   log_format: eventchannel
   events:
-  - '{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"4625","version":"0","level":"0","task":"12544","opcode":"0","keywords":"0x8010000000000000","systemTime":"2026-10-05T11:00:00.0000000Z","eventRecordID":"5009","processID":"640","threadID":"700","channel":"Security","computer":"win11-endpoint","severityValue":"AUDIT_FAILURE","message":"\"Lab event\""},"eventdata":{"targetUserName":"admin","targetDomainName":"WIN11","logonType":"3","ipAddress":"10.10.10.52","ipPort":"51000","status":"0xc000006d","subStatus":"0xc000006a"}}}'
+  - '{"Message":"Lab event","Event":"<Event xmlns=''http://schemas.microsoft.com/win/2004/08/events/event''><System><Provider Name=''Microsoft-Windows-Security-Auditing'' Guid=''{54849625-5478-4994-a5ba-3e3b0328c30d}''/><EventID>4625</EventID><Version>0</Version><Level>0</Level><Task>12544</Task><Opcode>0</Opcode><Keywords>0x8010000000000000</Keywords><TimeCreated SystemTime=''2026-10-05T11:00:00.0000000Z''/><EventRecordID>5009</EventRecordID><Correlation/><Execution ProcessID=''640'' ThreadID=''700''/><Channel>Security</Channel><Computer>win11-endpoint</Computer><Security/></System><EventData><Data Name=''TargetUserName''>admin</Data><Data Name=''TargetDomainName''>WIN11</Data><Data Name=''LogonType''>3</Data><Data Name=''IpAddress''>10.10.10.52</Data><Data Name=''IpPort''>51000</Data><Data Name=''Status''>0xc000006d</Data><Data Name=''SubStatus''>0xc000006a</Data></EventData></Event>"}'
   expect:
     rule: 100200
     level: 5
@@ -208,7 +227,7 @@ cases:
   location: EventChannel
   log_format: eventchannel
   events:
-  - '{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"4740","version":"0","level":"0","task":"12544","opcode":"0","keywords":"0x8020000000000000","systemTime":"2026-10-05T11:00:00.0000000Z","eventRecordID":"5010","processID":"640","threadID":"700","channel":"Security","computer":"win11-endpoint","severityValue":"AUDIT_SUCCESS","message":"\"Lab event\""},"eventdata":{"targetUserName":"labadmin","targetDomainName":"WIN11","subjectUserName":"WIN11$"}}}'
+  - '{"Message":"Lab event","Event":"<Event xmlns=''http://schemas.microsoft.com/win/2004/08/events/event''><System><Provider Name=''Microsoft-Windows-Security-Auditing'' Guid=''{54849625-5478-4994-a5ba-3e3b0328c30d}''/><EventID>4740</EventID><Version>0</Version><Level>0</Level><Task>12544</Task><Opcode>0</Opcode><Keywords>0x8020000000000000</Keywords><TimeCreated SystemTime=''2026-10-05T11:00:00.0000000Z''/><EventRecordID>5010</EventRecordID><Correlation/><Execution ProcessID=''640'' ThreadID=''700''/><Channel>Security</Channel><Computer>win11-endpoint</Computer><Security/></System><EventData><Data Name=''TargetUserName''>labadmin</Data><Data Name=''TargetDomainName''>WIN11</Data><Data Name=''SubjectUserName''>WIN11$</Data></EventData></Event>"}'
   expect:
     rule: 100202
     level: 8
@@ -216,7 +235,7 @@ cases:
   location: EventChannel
   log_format: eventchannel
   events:
-  - '{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"4624","version":"0","level":"0","task":"12544","opcode":"0","keywords":"0x8020000000000000","systemTime":"2026-10-05T11:00:00.0000000Z","eventRecordID":"5011","processID":"640","threadID":"700","channel":"Security","computer":"win11-endpoint","severityValue":"AUDIT_SUCCESS","message":"\"Lab event\""},"eventdata":{"targetUserName":"labadmin","targetDomainName":"WIN11","logonType":"10","ipAddress":"10.10.10.1","ipPort":"50000"}}}'
+  - '{"Message":"Lab event","Event":"<Event xmlns=''http://schemas.microsoft.com/win/2004/08/events/event''><System><Provider Name=''Microsoft-Windows-Security-Auditing'' Guid=''{54849625-5478-4994-a5ba-3e3b0328c30d}''/><EventID>4624</EventID><Version>0</Version><Level>0</Level><Task>12544</Task><Opcode>0</Opcode><Keywords>0x8020000000000000</Keywords><TimeCreated SystemTime=''2026-10-05T11:00:00.0000000Z''/><EventRecordID>5011</EventRecordID><Correlation/><Execution ProcessID=''640'' ThreadID=''700''/><Channel>Security</Channel><Computer>win11-endpoint</Computer><Security/></System><EventData><Data Name=''TargetUserName''>labadmin</Data><Data Name=''TargetDomainName''>WIN11</Data><Data Name=''LogonType''>10</Data><Data Name=''IpAddress''>10.10.10.1</Data><Data Name=''IpPort''>50000</Data></EventData></Event>"}'
   expect:
     rule: 100203
     level: 6
@@ -224,7 +243,7 @@ cases:
   location: EventChannel
   log_format: eventchannel
   events:
-  - '{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"4720","version":"0","level":"0","task":"12544","opcode":"0","keywords":"0x8020000000000000","systemTime":"2026-10-05T11:00:00.0000000Z","eventRecordID":"5012","processID":"640","threadID":"700","channel":"Security","computer":"win11-endpoint","severityValue":"AUDIT_SUCCESS","message":"\"Lab event\""},"eventdata":{"targetUserName":"lab-temp","targetDomainName":"WIN11","subjectUserName":"labadmin"}}}'
+  - '{"Message":"Lab event","Event":"<Event xmlns=''http://schemas.microsoft.com/win/2004/08/events/event''><System><Provider Name=''Microsoft-Windows-Security-Auditing'' Guid=''{54849625-5478-4994-a5ba-3e3b0328c30d}''/><EventID>4720</EventID><Version>0</Version><Level>0</Level><Task>12544</Task><Opcode>0</Opcode><Keywords>0x8020000000000000</Keywords><TimeCreated SystemTime=''2026-10-05T11:00:00.0000000Z''/><EventRecordID>5012</EventRecordID><Correlation/><Execution ProcessID=''640'' ThreadID=''700''/><Channel>Security</Channel><Computer>win11-endpoint</Computer><Security/></System><EventData><Data Name=''TargetUserName''>lab-temp</Data><Data Name=''TargetDomainName''>WIN11</Data><Data Name=''SubjectUserName''>labadmin</Data></EventData></Event>"}'
   expect:
     rule: 100204
     level: 8
@@ -232,7 +251,7 @@ cases:
   location: EventChannel
   log_format: eventchannel
   events:
-  - '{"win":{"system":{"providerName":"Microsoft-Windows-Security-Auditing","eventID":"4732","version":"0","level":"0","task":"12544","opcode":"0","keywords":"0x8020000000000000","systemTime":"2026-10-05T11:00:00.0000000Z","eventRecordID":"5013","processID":"640","threadID":"700","channel":"Security","computer":"win11-endpoint","severityValue":"AUDIT_SUCCESS","message":"\"Lab event\""},"eventdata":{"memberName":"-","memberSid":"S-1-5-21-1000-1000-1000-1004","targetUserName":"Administrators","targetDomainName":"Builtin","targetSid":"S-1-5-32-544","subjectUserName":"labadmin"}}}'
+  - '{"Message":"Lab event","Event":"<Event xmlns=''http://schemas.microsoft.com/win/2004/08/events/event''><System><Provider Name=''Microsoft-Windows-Security-Auditing'' Guid=''{54849625-5478-4994-a5ba-3e3b0328c30d}''/><EventID>4732</EventID><Version>0</Version><Level>0</Level><Task>12544</Task><Opcode>0</Opcode><Keywords>0x8020000000000000</Keywords><TimeCreated SystemTime=''2026-10-05T11:00:00.0000000Z''/><EventRecordID>5013</EventRecordID><Correlation/><Execution ProcessID=''640'' ThreadID=''700''/><Channel>Security</Channel><Computer>win11-endpoint</Computer><Security/></System><EventData><Data Name=''MemberName''>-</Data><Data Name=''MemberSid''>S-1-5-21-1000-1000-1000-1004</Data><Data Name=''TargetUserName''>Administrators</Data><Data Name=''TargetDomainName''>Builtin</Data><Data Name=''TargetSid''>S-1-5-32-544</Data><Data Name=''SubjectUserName''>labadmin</Data></EventData></Event>"}'
   expect:
     rule: 100205
     level: 12
@@ -240,7 +259,7 @@ cases:
   location: EventChannel
   log_format: eventchannel
   events:
-  - '{"win":{"system":{"providerName":"Microsoft-Windows-Eventlog","eventID":"1102","version":"0","level":"0","task":"12544","opcode":"0","keywords":"0x8020000000000000","systemTime":"2026-10-05T11:00:00.0000000Z","eventRecordID":"5014","processID":"640","threadID":"700","channel":"Security","computer":"win11-endpoint","severityValue":"AUDIT_SUCCESS","message":"\"Lab event\""},"eventdata":{}}}'
+  - '{"Message":"Lab event","Event":"<Event xmlns=''http://schemas.microsoft.com/win/2004/08/events/event''><System><Provider Name=''Microsoft-Windows-Eventlog'' Guid=''{54849625-5478-4994-a5ba-3e3b0328c30d}''/><EventID>1102</EventID><Version>0</Version><Level>0</Level><Task>12544</Task><Opcode>0</Opcode><Keywords>0x8020000000000000</Keywords><TimeCreated SystemTime=''2026-10-05T11:00:00.0000000Z''/><EventRecordID>5014</EventRecordID><Correlation/><Execution ProcessID=''640'' ThreadID=''700''/><Channel>Security</Channel><Computer>win11-endpoint</Computer><Security/></System><UserData><LogFileCleared xmlns=''http://manifests.microsoft.com/win/2004/08/windows/eventlog''><SubjectUserName>labadmin</SubjectUserName><SubjectDomainName>WIN11</SubjectDomainName></LogFileCleared></UserData></Event>"}'
   expect:
     rule: 100206
     level: 12
